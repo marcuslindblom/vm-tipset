@@ -1,0 +1,42 @@
+name: Deploy
+
+# Auto-deploy till Cloudflare vid merge/push till main.
+on:
+  push:
+    branches: [main]
+
+# Ett deploy i taget; avbryt inte pågående deploy.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      # 1) Deploya Workern (skapar den vid första körningen).
+      - name: Deploy worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+
+      # 2) Synka Workerns runtime-hemligheter (idempotent, persistar mellan deploys).
+      - name: Sync worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          APISPORTS_KEY: ${{ secrets.APISPORTS_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          printf '%s' "$APISPORTS_KEY" | npx wrangler secret put APISPORTS_KEY
+          printf '%s' "$SLACK_WEBHOOK_URL" | npx wrangler secret put SLACK_WEBHOOK_URL

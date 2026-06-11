@@ -1,0 +1,1346 @@
+{
+  "generatedFrom": [
+    "VM-Tipset 2026 - Marcus.xlsx"
+  ],
+  "keyBy": "fixtureId",
+  "leagueId": 1,
+  "season": 2026,
+  "players": [
+    "Marcus"
+  ],
+  "kickoffs": [
+    "2026-06-11T19:00:00.000Z",
+    "2026-06-12T02:00:00.000Z",
+    "2026-06-12T19:00:00.000Z",
+    "2026-06-13T01:00:00.000Z",
+    "2026-06-13T19:00:00.000Z",
+    "2026-06-13T22:00:00.000Z",
+    "2026-06-14T01:00:00.000Z",
+    "2026-06-14T04:00:00.000Z",
+    "2026-06-14T17:00:00.000Z",
+    "2026-06-14T20:00:00.000Z",
+    "2026-06-14T23:00:00.000Z",
+    "2026-06-15T02:00:00.000Z",
+    "2026-06-15T16:00:00.000Z",
+    "2026-06-15T19:00:00.000Z",
+    "2026-06-15T22:00:00.000Z",
+    "2026-06-16T01:00:00.000Z",
+    "2026-06-16T19:00:00.000Z",
+    "2026-06-16T22:00:00.000Z",
+    "2026-06-17T01:00:00.000Z",
+    "2026-06-17T04:00:00.000Z",
+    "2026-06-17T17:00:00.000Z",
+    "2026-06-17T20:00:00.000Z",
+    "2026-06-17T23:00:00.000Z",
+    "2026-06-18T02:00:00.000Z",
+    "2026-06-18T16:00:00.000Z",
+    "2026-06-18T19:00:00.000Z",
+    "2026-06-18T22:00:00.000Z",
+    "2026-06-19T01:00:00.000Z",
+    "2026-06-19T19:00:00.000Z",
+    "2026-06-19T22:00:00.000Z",
+    "2026-06-20T00:30:00.000Z",
+    "2026-06-20T03:00:00.000Z",
+    "2026-06-20T17:00:00.000Z",
+    "2026-06-20T20:00:00.000Z",
+    "2026-06-21T00:00:00.000Z",
+    "2026-06-21T04:00:00.000Z",
+    "2026-06-21T16:00:00.000Z",
+    "2026-06-21T19:00:00.000Z",
+    "2026-06-21T22:00:00.000Z",
+    "2026-06-22T01:00:00.000Z",
+    "2026-06-22T17:00:00.000Z",
+    "2026-06-22T21:00:00.000Z",
+    "2026-06-23T00:00:00.000Z",
+    "2026-06-23T03:00:00.000Z",
+    "2026-06-23T17:00:00.000Z",
+    "2026-06-23T20:00:00.000Z",
+    "2026-06-23T23:00:00.000Z",
+    "2026-06-24T02:00:00.000Z",
+    "2026-06-24T19:00:00.000Z",
+    "2026-06-24T22:00:00.000Z",
+    "2026-06-25T01:00:00.000Z",
+    "2026-06-25T20:00:00.000Z",
+    "2026-06-25T23:00:00.000Z",
+    "2026-06-26T02:00:00.000Z",
+    "2026-06-26T19:00:00.000Z",
+    "2026-06-27T00:00:00.000Z",
+    "2026-06-27T03:00:00.000Z",
+    "2026-06-27T21:00:00.000Z",
+    "2026-06-27T23:30:00.000Z",
+    "2026-06-28T02:00:00.000Z",
+    "2026-06-28T19:00:00.000Z",
+    "2026-06-29T17:00:00.000Z",
+    "2026-06-29T20:30:00.000Z",
+    "2026-06-30T01:00:00.000Z",
+    "2026-06-30T17:00:00.000Z",
+    "2026-06-30T21:00:00.000Z",
+    "2026-07-01T01:00:00.000Z",
+    "2026-07-01T16:00:00.000Z",
+    "2026-07-01T20:00:00.000Z",
+    "2026-07-02T00:00:00.000Z",
+    "2026-07-02T19:00:00.000Z",
+    "2026-07-02T23:00:00.000Z",
+    "2026-07-03T03:00:00.000Z",
+    "2026-07-03T18:00:00.000Z",
+    "2026-07-03T22:00:00.000Z",
+    "2026-07-04T01:30:00.000Z",
+    "2026-07-04T17:00:00.000Z",
+    "2026-07-04T21:00:00.000Z",
+    "2026-07-05T20:00:00.000Z",
+    "2026-07-06T00:00:00.000Z",
+    "2026-07-06T19:00:00.000Z",
+    "2026-07-07T00:00:00.000Z",
+    "2026-07-07T16:00:00.000Z",
+    "2026-07-07T20:00:00.000Z",
+    "2026-07-09T20:00:00.000Z",
+    "2026-07-10T19:00:00.000Z",
+    "2026-07-11T21:00:00.000Z",
+    "2026-07-12T01:00:00.000Z",
+    "2026-07-14T19:00:00.000Z",
+    "2026-07-15T19:00:00.000Z",
+    "2026-07-18T21:00:00.000Z",
+    "2026-07-19T19:00:00.000Z"
+  ],
+  "fixtures": {
+    "1489369": {
+      "home": "Mexico",
+      "away": "South Africa",
+      "homeSv": "Mexiko",
+      "awaySv": "Sydafrika",
+      "group": "A",
+      "excelDate": "11 juni 21:00 TV4",
+      "kickoff": "2026-06-11T19:00:00.000Z",
+      "fixtureId": 1489369
+    },
+    "1489370": {
+      "home": "USA",
+      "away": "Paraguay",
+      "homeSv": "USA",
+      "awaySv": "Paraguay",
+      "group": "D",
+      "excelDate": "13 juni 03:00 TV4",
+      "kickoff": "2026-06-13T01:00:00.000Z",
+      "fixtureId": 1489370
+    },
+    "1489371": {
+      "home": "Brazil",
+      "away": "Morocco",
+      "homeSv": "Brasilien",
+      "awaySv": "Marocko",
+      "group": "C",
+      "excelDate": "14 juni 00:00 SVT",
+      "kickoff": "2026-06-13T22:00:00.000Z",
+      "fixtureId": 1489371
+    },
+    "1489372": {
+      "home": "Haiti",
+      "away": "Scotland",
+      "homeSv": "Haiti",
+      "awaySv": "Skottland",
+      "group": "C",
+      "excelDate": "14 juni 03:00 SVT",
+      "kickoff": "2026-06-14T01:00:00.000Z",
+      "fixtureId": 1489372
+    },
+    "1489373": {
+      "home": "Qatar",
+      "away": "Switzerland",
+      "homeSv": "Qatar",
+      "awaySv": "Schweiz",
+      "group": "B",
+      "excelDate": "13 juni 21:00 TV4",
+      "kickoff": "2026-06-13T19:00:00.000Z",
+      "fixtureId": 1489373
+    },
+    "1489374": {
+      "home": "Germany",
+      "away": "Curacao",
+      "homeSv": "Tyskland",
+      "awaySv": "Curaçao",
+      "group": "E",
+      "excelDate": "14 juni 19:00 TV4",
+      "kickoff": "2026-06-14T17:00:00.000Z",
+      "fixtureId": 1489374
+    },
+    "1489375": {
+      "home": "Ivory Coast",
+      "away": "Ecuador",
+      "homeSv": "Elfenbenskusten",
+      "awaySv": "Ecuador",
+      "group": "E",
+      "excelDate": "15 juni 01:00 TV4",
+      "kickoff": "2026-06-14T23:00:00.000Z",
+      "fixtureId": 1489375
+    },
+    "1489376": {
+      "home": "Netherlands",
+      "away": "Japan",
+      "homeSv": "Nederländerna",
+      "awaySv": "Japan",
+      "group": "F",
+      "excelDate": "14 jun 22:00 TV4",
+      "kickoff": "2026-06-14T20:00:00.000Z",
+      "fixtureId": 1489376
+    },
+    "1489377": {
+      "home": "Belgium",
+      "away": "Egypt",
+      "homeSv": "Belgien",
+      "awaySv": "Egypten",
+      "group": "G",
+      "excelDate": "15 jun 21:00 SVT",
+      "kickoff": "2026-06-15T19:00:00.000Z",
+      "fixtureId": 1489377
+    },
+    "1489378": {
+      "home": "Iran",
+      "away": "New Zealand",
+      "homeSv": "Iran",
+      "awaySv": "Nya Zeeland",
+      "group": "G",
+      "excelDate": "16 jun 03:00 TV4",
+      "kickoff": "2026-06-16T01:00:00.000Z",
+      "fixtureId": 1489378
+    },
+    "1489379": {
+      "home": "Saudi Arabia",
+      "away": "Uruguay",
+      "homeSv": "Saudiarabien",
+      "awaySv": "Uruguay",
+      "group": "H",
+      "excelDate": "16 jun 00:00 TV4",
+      "kickoff": "2026-06-15T22:00:00.000Z",
+      "fixtureId": 1489379
+    },
+    "1489380": {
+      "home": "Spain",
+      "away": "Cape Verde",
+      "homeSv": "Spanien",
+      "awaySv": "Kap Verde",
+      "group": "H",
+      "excelDate": "15 jun 18:00 SVT",
+      "kickoff": "2026-06-15T16:00:00.000Z",
+      "fixtureId": 1489380
+    },
+    "1489381": {
+      "home": "Argentina",
+      "away": "Algeria",
+      "homeSv": "Argentina",
+      "awaySv": "Algeriet",
+      "group": "J",
+      "excelDate": "17 jun 03:00 TV4",
+      "kickoff": "2026-06-17T01:00:00.000Z",
+      "fixtureId": 1489381
+    },
+    "1489382": {
+      "home": "Austria",
+      "away": "Jordan",
+      "homeSv": "Österrike",
+      "awaySv": "Jordanien",
+      "group": "J",
+      "excelDate": "17 jun 06:00 TV4",
+      "kickoff": "2026-06-17T04:00:00.000Z",
+      "fixtureId": 1489382
+    },
+    "1489383": {
+      "home": "France",
+      "away": "Senegal",
+      "homeSv": "Frankrike",
+      "awaySv": "Senegal",
+      "group": "I",
+      "excelDate": "16 jun 21:00 SVT",
+      "kickoff": "2026-06-16T19:00:00.000Z",
+      "fixtureId": 1489383
+    },
+    "1489384": {
+      "home": "England",
+      "away": "Croatia",
+      "homeSv": "England",
+      "awaySv": "Kroatien",
+      "group": "L",
+      "excelDate": "17 jun 22:00 TV4",
+      "kickoff": "2026-06-17T20:00:00.000Z",
+      "fixtureId": 1489384
+    },
+    "1489385": {
+      "home": "Ghana",
+      "away": "Panama",
+      "homeSv": "Ghana",
+      "awaySv": "Panama",
+      "group": "L",
+      "excelDate": "18 jun 01:00 TV4",
+      "kickoff": "2026-06-17T23:00:00.000Z",
+      "fixtureId": 1489385
+    },
+    "1489386": {
+      "home": "Uzbekistan",
+      "away": "Colombia",
+      "homeSv": "Uzbekistan",
+      "awaySv": "Colombia",
+      "group": "K",
+      "excelDate": "18 jun 04:00 TV4",
+      "kickoff": "2026-06-18T02:00:00.000Z",
+      "fixtureId": 1489386
+    },
+    "1489387": {
+      "home": "Canada",
+      "away": "Qatar",
+      "homeSv": "Kanada",
+      "awaySv": "Qatar",
+      "group": "B",
+      "excelDate": "19 juni 00:00 TV4",
+      "kickoff": "2026-06-18T22:00:00.000Z",
+      "fixtureId": 1489387
+    },
+    "1489388": {
+      "home": "Mexico",
+      "away": "South Korea",
+      "homeSv": "Mexiko",
+      "awaySv": "Sydkorea",
+      "group": "A",
+      "excelDate": "19 juni 03:00 TV4",
+      "kickoff": "2026-06-19T01:00:00.000Z",
+      "fixtureId": 1489388
+    },
+    "1489389": {
+      "home": "Brazil",
+      "away": "Haiti",
+      "homeSv": "Brasilien",
+      "awaySv": "Haiti",
+      "group": "C",
+      "excelDate": "20 juni 02:30 TV4",
+      "kickoff": "2026-06-20T00:30:00.000Z",
+      "fixtureId": 1489389
+    },
+    "1489390": {
+      "home": "Scotland",
+      "away": "Morocco",
+      "homeSv": "Skottland",
+      "awaySv": "Marocko",
+      "group": "C",
+      "excelDate": "20 juni 00:00 SVT",
+      "kickoff": "2026-06-19T22:00:00.000Z",
+      "fixtureId": 1489390
+    },
+    "1489391": {
+      "home": "USA",
+      "away": "Australia",
+      "homeSv": "USA",
+      "awaySv": "Australien",
+      "group": "D",
+      "excelDate": "19 juni 21:00 SVT",
+      "kickoff": "2026-06-19T19:00:00.000Z",
+      "fixtureId": 1489391
+    },
+    "1489392": {
+      "home": "Ecuador",
+      "away": "Curacao",
+      "homeSv": "Ecuador",
+      "awaySv": "Curaçao",
+      "group": "E",
+      "excelDate": "21 juni 02:00 TV4",
+      "kickoff": "2026-06-21T00:00:00.000Z",
+      "fixtureId": 1489392
+    },
+    "1489393": {
+      "home": "Germany",
+      "away": "Ivory Coast",
+      "homeSv": "Tyskland",
+      "awaySv": "Elfenbenskusten",
+      "group": "E",
+      "excelDate": "20 juni 22:00 TV4",
+      "kickoff": "2026-06-20T20:00:00.000Z",
+      "fixtureId": 1489393
+    },
+    "1489394": {
+      "home": "Tunisia",
+      "away": "Japan",
+      "homeSv": "Tunisien",
+      "awaySv": "Japan",
+      "group": "F",
+      "excelDate": "21 jun 06:00 SVT",
+      "kickoff": "2026-06-21T04:00:00.000Z",
+      "fixtureId": 1489394
+    },
+    "1489395": {
+      "home": "Belgium",
+      "away": "Iran",
+      "homeSv": "Belgien",
+      "awaySv": "Iran",
+      "group": "G",
+      "excelDate": "21 jun 21:00 TV4",
+      "kickoff": "2026-06-21T19:00:00.000Z",
+      "fixtureId": 1489395
+    },
+    "1489396": {
+      "home": "New Zealand",
+      "away": "Egypt",
+      "homeSv": "Nya Zeeland",
+      "awaySv": "Egypten",
+      "group": "G",
+      "excelDate": "22 jun 03:00 TV4",
+      "kickoff": "2026-06-22T01:00:00.000Z",
+      "fixtureId": 1489396
+    },
+    "1489397": {
+      "home": "Spain",
+      "away": "Saudi Arabia",
+      "homeSv": "Spanien",
+      "awaySv": "Saudiarabien",
+      "group": "H",
+      "excelDate": "21 jun 18:00 TV4",
+      "kickoff": "2026-06-21T16:00:00.000Z",
+      "fixtureId": 1489397
+    },
+    "1489398": {
+      "home": "Uruguay",
+      "away": "Cape Verde",
+      "homeSv": "Uruguay",
+      "awaySv": "Kap Verde",
+      "group": "H",
+      "excelDate": "22 jun 00:00 TV4",
+      "kickoff": "2026-06-21T22:00:00.000Z",
+      "fixtureId": 1489398
+    },
+    "1489399": {
+      "home": "Argentina",
+      "away": "Austria",
+      "homeSv": "Argentina",
+      "awaySv": "Österrike",
+      "group": "J",
+      "excelDate": "22 jun 19:00 SVT",
+      "kickoff": "2026-06-22T17:00:00.000Z",
+      "fixtureId": 1489399
+    },
+    "1489400": {
+      "home": "Jordan",
+      "away": "Algeria",
+      "homeSv": "Jordanien",
+      "awaySv": "Algeriet",
+      "group": "J",
+      "excelDate": "23 jun 05:00 TV4",
+      "kickoff": "2026-06-23T03:00:00.000Z",
+      "fixtureId": 1489400
+    },
+    "1489401": {
+      "home": "Norway",
+      "away": "Senegal",
+      "homeSv": "Norge",
+      "awaySv": "Senegal",
+      "group": "I",
+      "excelDate": "23 jun 02:00 SVT",
+      "kickoff": "2026-06-23T00:00:00.000Z",
+      "fixtureId": 1489401
+    },
+    "1489402": {
+      "home": "England",
+      "away": "Ghana",
+      "homeSv": "England",
+      "awaySv": "Ghana",
+      "group": "L",
+      "excelDate": "23 jun 22:00 SVT",
+      "kickoff": "2026-06-23T20:00:00.000Z",
+      "fixtureId": 1489402
+    },
+    "1489403": {
+      "home": "Panama",
+      "away": "Croatia",
+      "homeSv": "Panama",
+      "awaySv": "Kroatien",
+      "group": "L",
+      "excelDate": "24 jun 01:00 TV4",
+      "kickoff": "2026-06-23T23:00:00.000Z",
+      "fixtureId": 1489403
+    },
+    "1489404": {
+      "home": "Portugal",
+      "away": "Uzbekistan",
+      "homeSv": "Portugal",
+      "awaySv": "Uzbekistan",
+      "group": "K",
+      "excelDate": "23 jun 19:00 SVT",
+      "kickoff": "2026-06-23T17:00:00.000Z",
+      "fixtureId": 1489404
+    },
+    "1489405": {
+      "home": "Morocco",
+      "away": "Haiti",
+      "homeSv": "Marocko",
+      "awaySv": "Haiti",
+      "group": "C",
+      "excelDate": "25 juni 00:00 TV4",
+      "kickoff": "2026-06-24T22:00:00.000Z",
+      "fixtureId": 1489405
+    },
+    "1489406": {
+      "home": "Scotland",
+      "away": "Brazil",
+      "homeSv": "Skottland",
+      "awaySv": "Brasilien",
+      "group": "C",
+      "excelDate": "25 juni 00:00 TV4",
+      "kickoff": "2026-06-24T22:00:00.000Z",
+      "fixtureId": 1489406
+    },
+    "1489407": {
+      "home": "South Africa",
+      "away": "South Korea",
+      "homeSv": "Sydafrika",
+      "awaySv": "Sydkorea",
+      "group": "A",
+      "excelDate": "25 juni 03:00 SVT",
+      "kickoff": "2026-06-25T01:00:00.000Z",
+      "fixtureId": 1489407
+    },
+    "1489408": {
+      "home": "Switzerland",
+      "away": "Canada",
+      "homeSv": "Schweiz",
+      "awaySv": "Kanada",
+      "group": "B",
+      "excelDate": "24 juni 21:00 TV4",
+      "kickoff": "2026-06-24T19:00:00.000Z",
+      "fixtureId": 1489408
+    },
+    "1489409": {
+      "home": "Curacao",
+      "away": "Ivory Coast",
+      "homeSv": "Curaçao",
+      "awaySv": "Elfenbenskusten",
+      "group": "E",
+      "excelDate": "25 juni 22:00 SVT",
+      "kickoff": "2026-06-25T20:00:00.000Z",
+      "fixtureId": 1489409
+    },
+    "1489410": {
+      "home": "Ecuador",
+      "away": "Germany",
+      "homeSv": "Ecuador",
+      "awaySv": "Tyskland",
+      "group": "E",
+      "excelDate": "25 juni 22:00 SVT",
+      "kickoff": "2026-06-25T20:00:00.000Z",
+      "fixtureId": 1489410
+    },
+    "1489411": {
+      "home": "Paraguay",
+      "away": "Australia",
+      "homeSv": "Paraguay",
+      "awaySv": "Australien",
+      "group": "D",
+      "excelDate": "26 juni 04:00 TV4",
+      "kickoff": "2026-06-26T02:00:00.000Z",
+      "fixtureId": 1489411
+    },
+    "1489412": {
+      "home": "Tunisia",
+      "away": "Netherlands",
+      "homeSv": "Tunisien",
+      "awaySv": "Nederländerna",
+      "group": "F",
+      "excelDate": "26 jun 01:00 SVT",
+      "kickoff": "2026-06-25T23:00:00.000Z",
+      "fixtureId": 1489412
+    },
+    "1489413": {
+      "home": "Cape Verde",
+      "away": "Saudi Arabia",
+      "homeSv": "Kap Verde",
+      "awaySv": "Saudiarabien",
+      "group": "H",
+      "excelDate": "27 jun 02:00 TV4",
+      "kickoff": "2026-06-27T00:00:00.000Z",
+      "fixtureId": 1489413
+    },
+    "1489414": {
+      "home": "Egypt",
+      "away": "Iran",
+      "homeSv": "Egypten",
+      "awaySv": "Iran",
+      "group": "G",
+      "excelDate": "27 jun 05:00 TV4",
+      "kickoff": "2026-06-27T03:00:00.000Z",
+      "fixtureId": 1489414
+    },
+    "1489415": {
+      "home": "New Zealand",
+      "away": "Belgium",
+      "homeSv": "Nya Zeeland",
+      "awaySv": "Belgien",
+      "group": "G",
+      "excelDate": "27 jun 05:00 TV4",
+      "kickoff": "2026-06-27T03:00:00.000Z",
+      "fixtureId": 1489415
+    },
+    "1489416": {
+      "home": "Norway",
+      "away": "France",
+      "homeSv": "Norge",
+      "awaySv": "Frankrike",
+      "group": "I",
+      "excelDate": "26 jun 21:00 TV4",
+      "kickoff": "2026-06-26T19:00:00.000Z",
+      "fixtureId": 1489416
+    },
+    "1489417": {
+      "home": "Uruguay",
+      "away": "Spain",
+      "homeSv": "Uruguay",
+      "awaySv": "Spanien",
+      "group": "H",
+      "excelDate": "27 jun 02:00 TV4",
+      "kickoff": "2026-06-27T00:00:00.000Z",
+      "fixtureId": 1489417
+    },
+    "1489418": {
+      "home": "Algeria",
+      "away": "Austria",
+      "homeSv": "Algeriet",
+      "awaySv": "Österrike",
+      "group": "J",
+      "excelDate": "28 jun 04:00 TV4",
+      "kickoff": "2026-06-28T02:00:00.000Z",
+      "fixtureId": 1489418
+    },
+    "1489419": {
+      "home": "Colombia",
+      "away": "Portugal",
+      "homeSv": "Colombia",
+      "awaySv": "Portugal",
+      "group": "K",
+      "excelDate": "28 jun 01:30 TV4",
+      "kickoff": "2026-06-27T23:30:00.000Z",
+      "fixtureId": 1489419
+    },
+    "1489420": {
+      "home": "Croatia",
+      "away": "Ghana",
+      "homeSv": "Kroatien",
+      "awaySv": "Ghana",
+      "group": "L",
+      "excelDate": "27 jun 23:00 SVT",
+      "kickoff": "2026-06-27T21:00:00.000Z",
+      "fixtureId": 1489420
+    },
+    "1489421": {
+      "home": "Jordan",
+      "away": "Argentina",
+      "homeSv": "Jordanien",
+      "awaySv": "Argentina",
+      "group": "J",
+      "excelDate": "28 jun 04:00 TV4",
+      "kickoff": "2026-06-28T02:00:00.000Z",
+      "fixtureId": 1489421
+    },
+    "1489422": {
+      "home": "Panama",
+      "away": "England",
+      "homeSv": "Panama",
+      "awaySv": "England",
+      "group": "L",
+      "excelDate": "27 jun 23:00 SVT",
+      "kickoff": "2026-06-27T21:00:00.000Z",
+      "fixtureId": 1489422
+    },
+    "1538999": {
+      "home": "South Korea",
+      "away": "Czech Republic",
+      "homeSv": "Sydkorea",
+      "awaySv": "Tjeckien",
+      "group": "A",
+      "excelDate": "12 juni 04:00 TV4",
+      "kickoff": "2026-06-12T02:00:00.000Z",
+      "fixtureId": 1538999
+    },
+    "1539000": {
+      "home": "Canada",
+      "away": "Bosnia and Herzegovina",
+      "homeSv": "Kanada",
+      "awaySv": "Bosnien och Herce.",
+      "group": "B",
+      "excelDate": "12 juni 21:00 SVT",
+      "kickoff": "2026-06-12T19:00:00.000Z",
+      "fixtureId": 1539000
+    },
+    "1539001": {
+      "home": "Australia",
+      "away": "Turkey",
+      "homeSv": "Australien",
+      "awaySv": "Turkiet",
+      "group": "D",
+      "excelDate": "14 juni 06:00 TV4",
+      "kickoff": "2026-06-14T04:00:00.000Z",
+      "fixtureId": 1539001
+    },
+    "1539002": {
+      "home": "Sweden",
+      "away": "Tunisia",
+      "homeSv": "Sverige",
+      "awaySv": "Tunisien",
+      "group": "F",
+      "excelDate": "15 jun 04:00 SVT",
+      "kickoff": "2026-06-15T02:00:00.000Z",
+      "fixtureId": 1539002
+    },
+    "1539003": {
+      "home": "Portugal",
+      "away": "DR Congo",
+      "homeSv": "Portugal",
+      "awaySv": "DR Kongo",
+      "group": "K",
+      "excelDate": "17 jun 19:00 TV4",
+      "kickoff": "2026-06-17T17:00:00.000Z",
+      "fixtureId": 1539003
+    },
+    "1539004": {
+      "home": "Czech Republic",
+      "away": "South Africa",
+      "homeSv": "Tjeckien",
+      "awaySv": "Sydafrika",
+      "group": "A",
+      "excelDate": "18 juni 18:00 TV4",
+      "kickoff": "2026-06-18T16:00:00.000Z",
+      "fixtureId": 1539004
+    },
+    "1539005": {
+      "home": "Switzerland",
+      "away": "Bosnia and Herzegovina",
+      "homeSv": "Schweiz",
+      "awaySv": "Bosnien och Herce.",
+      "group": "B",
+      "excelDate": "18 juni 21:00 TV4",
+      "kickoff": "2026-06-18T19:00:00.000Z",
+      "fixtureId": 1539005
+    },
+    "1539006": {
+      "home": "Turkey",
+      "away": "Paraguay",
+      "homeSv": "Turkiet",
+      "awaySv": "Paraguay",
+      "group": "D",
+      "excelDate": "20 juni 05:00 TV4",
+      "kickoff": "2026-06-20T03:00:00.000Z",
+      "fixtureId": 1539006
+    },
+    "1539007": {
+      "home": "Netherlands",
+      "away": "Sweden",
+      "homeSv": "Nederländerna",
+      "awaySv": "Sverige",
+      "group": "F",
+      "excelDate": "20 jun 19:00 TV4",
+      "kickoff": "2026-06-20T17:00:00.000Z",
+      "fixtureId": 1539007
+    },
+    "1539008": {
+      "home": "Colombia",
+      "away": "DR Congo",
+      "homeSv": "Colombia",
+      "awaySv": "DR Kongo",
+      "group": "K",
+      "excelDate": "24 jun 04:00 TV4",
+      "kickoff": "2026-06-24T02:00:00.000Z",
+      "fixtureId": 1539008
+    },
+    "1539009": {
+      "home": "Bosnia and Herzegovina",
+      "away": "Qatar",
+      "homeSv": "Bosnien och Herce.",
+      "awaySv": "Qatar",
+      "group": "B",
+      "excelDate": "24 juni 21:00 TV4",
+      "kickoff": "2026-06-24T19:00:00.000Z",
+      "fixtureId": 1539009
+    },
+    "1539010": {
+      "home": "Czech Republic",
+      "away": "Mexico",
+      "homeSv": "Tjeckien",
+      "awaySv": "Mexiko",
+      "group": "A",
+      "excelDate": "25 juni 03:00 SVT",
+      "kickoff": "2026-06-25T01:00:00.000Z",
+      "fixtureId": 1539010
+    },
+    "1539011": {
+      "home": "Japan",
+      "away": "Sweden",
+      "homeSv": "Japan",
+      "awaySv": "Sverige",
+      "group": "F",
+      "excelDate": "26 jun 01:00 SVT",
+      "kickoff": "2026-06-25T23:00:00.000Z",
+      "fixtureId": 1539011
+    },
+    "1539012": {
+      "home": "Turkey",
+      "away": "USA",
+      "homeSv": "Turkiet",
+      "awaySv": "USA",
+      "group": "D",
+      "excelDate": "26 juni 04:00 TV4",
+      "kickoff": "2026-06-26T02:00:00.000Z",
+      "fixtureId": 1539012
+    },
+    "1539013": {
+      "home": "DR Congo",
+      "away": "Uzbekistan",
+      "homeSv": "DR Kongo",
+      "awaySv": "Uzbekistan",
+      "group": "K",
+      "excelDate": "28 jun 01:30 TV4",
+      "kickoff": "2026-06-27T23:30:00.000Z",
+      "fixtureId": 1539013
+    },
+    "1539016": {
+      "home": "Iraq",
+      "away": "Norway",
+      "homeSv": "Irak",
+      "awaySv": "Norge",
+      "group": "I",
+      "excelDate": "17 jun 00:00 TV4",
+      "kickoff": "2026-06-16T22:00:00.000Z",
+      "fixtureId": 1539016
+    },
+    "1539017": {
+      "home": "France",
+      "away": "Iraq",
+      "homeSv": "Frankrike",
+      "awaySv": "Irak",
+      "group": "I",
+      "excelDate": "22 jun 23:00 SVT",
+      "kickoff": "2026-06-22T21:00:00.000Z",
+      "fixtureId": 1539017
+    },
+    "1539074": {
+      "home": "Senegal",
+      "away": "Iraq",
+      "homeSv": "Senegal",
+      "awaySv": "Irak",
+      "group": "I",
+      "excelDate": "26 jun 21:00 TV4",
+      "kickoff": "2026-06-26T19:00:00.000Z",
+      "fixtureId": 1539074
+    }
+  },
+  "groupPredictions": {
+    "1489369": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489370": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489371": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1489372": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489373": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489374": {
+      "Marcus": [
+        3,
+        0
+      ]
+    },
+    "1489375": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489376": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489377": {
+      "Marcus": [
+        2,
+        1
+      ]
+    },
+    "1489378": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1489379": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489380": {
+      "Marcus": [
+        3,
+        0
+      ]
+    },
+    "1489381": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489382": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489383": {
+      "Marcus": [
+        2,
+        1
+      ]
+    },
+    "1489384": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489385": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1489386": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489387": {
+      "Marcus": [
+        3,
+        0
+      ]
+    },
+    "1489388": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489389": {
+      "Marcus": [
+        3,
+        0
+      ]
+    },
+    "1489390": {
+      "Marcus": [
+        0,
+        1
+      ]
+    },
+    "1489391": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489392": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489393": {
+      "Marcus": [
+        2,
+        1
+      ]
+    },
+    "1489394": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489395": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489396": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489397": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489398": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489399": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1489400": {
+      "Marcus": [
+        0,
+        1
+      ]
+    },
+    "1489401": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489402": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489403": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489404": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489405": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489406": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489407": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489408": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489409": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489410": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489411": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1489412": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489413": {
+      "Marcus": [
+        0,
+        1
+      ]
+    },
+    "1489414": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1489415": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1489416": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489417": {
+      "Marcus": [
+        0,
+        1
+      ]
+    },
+    "1489418": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489419": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1489420": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1489421": {
+      "Marcus": [
+        0,
+        3
+      ]
+    },
+    "1489422": {
+      "Marcus": [
+        0,
+        3
+      ]
+    },
+    "1538999": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1539000": {
+      "Marcus": [
+        2,
+        1
+      ]
+    },
+    "1539001": {
+      "Marcus": [
+        0,
+        1
+      ]
+    },
+    "1539002": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1539003": {
+      "Marcus": [
+        3,
+        0
+      ]
+    },
+    "1539004": {
+      "Marcus": [
+        1,
+        0
+      ]
+    },
+    "1539005": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1539006": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1539007": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1539008": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1539009": {
+      "Marcus": [
+        2,
+        0
+      ]
+    },
+    "1539010": {
+      "Marcus": [
+        0,
+        2
+      ]
+    },
+    "1539011": {
+      "Marcus": [
+        1,
+        2
+      ]
+    },
+    "1539012": {
+      "Marcus": [
+        1,
+        1
+      ]
+    },
+    "1539013": {
+      "Marcus": [
+        0,
+        1
+      ]
+    },
+    "1539016": {
+      "Marcus": [
+        0,
+        3
+      ]
+    },
+    "1539017": {
+      "Marcus": [
+        3,
+        0
+      ]
+    },
+    "1539074": {
+      "Marcus": [
+        2,
+        0
+      ]
+    }
+  },
+  "knockout": {
+    "Marcus": {
+      "teamsByRound": {
+        "R32": [
+          "South Korea",
+          "Switzerland",
+          "Germany",
+          "Czech Republic",
+          "Netherlands",
+          "Morocco",
+          "Brazil",
+          "Sweden",
+          "France",
+          "Paraguay",
+          "Ecuador",
+          "Norway",
+          "Mexico",
+          "Scotland",
+          "England",
+          "Algeria",
+          "USA",
+          "Bosnia and Herzegovina",
+          "Belgium",
+          "Senegal",
+          "Colombia",
+          "Croatia",
+          "Spain",
+          "Austria",
+          "Canada",
+          "Sweden",
+          "Argentina",
+          "Uruguay",
+          "Portugal",
+          "Ivory Coast",
+          "Turkey",
+          "Egypt"
+        ],
+        "R16": [
+          "Germany",
+          "France",
+          "Switzerland",
+          "Netherlands",
+          "Brazil",
+          "Norway",
+          "Mexico",
+          "England",
+          "Colombia",
+          "Spain",
+          "USA",
+          "Belgium",
+          "Argentina",
+          "Turkey",
+          "Sweden",
+          "Portugal"
+        ],
+        "QF": [
+          "France",
+          "Netherlands",
+          "Spain",
+          "USA",
+          "Brazil",
+          "England",
+          "Turkey",
+          "Sweden"
+        ],
+        "SF": [
+          "France",
+          "Spain",
+          "England",
+          "Turkey"
+        ],
+        "FINAL": [
+          "Spain",
+          "Turkey"
+        ],
+        "CHAMPION": [
+          "Spain"
+        ]
+      },
+      "champion": "Spain",
+      "topScorer": "Kylian Mbappé",
+      "topScorerGoals": 8,
+      "totalGoals": 281
+    }
+  }
+}

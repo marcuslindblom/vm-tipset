@@ -1,0 +1,41 @@
+# Slack-app-manifest för VM-tipset-rättaren.
+#
+# Skapa appen direkt från detta manifest:
+#   1. Gå till https://api.slack.com/apps  →  "Create New App"  →  "From an app manifest"
+#   2. Välj din workspace, klistra in detta YAML, skapa appen.
+#   3. Öppna "Incoming Webhooks" i appen → slå på → "Add New Webhook to Workspace"
+#      → välj kanalen #vm-tipset → kopiera webhook-URL:en.
+#   4. Lägg URL:en som hemlighet i Workern:
+#        npx wrangler secret put SLACK_WEBHOOK_URL
+#      (eller i .dev.vars lokalt). Utan URL körs tjänsten i dry-run och loggar bara.
+
+display_information:
+  name: VM-tipset
+  description: Räknar ut exakt hur fel du hade. I realtid, vid varje mål, helt utan barmhärtighet.
+  background_color: "#1a7f37"
+  long_description: >-
+    En outtröttlig digital tjänsteman vars enda livsuppgift är att granska dina
+    fotbollsprofetior och med vetenskaplig precision finna dem otillräckliga. Vid
+    varje mål väcks han till liv, räknar om hela ställningen och publicerar en
+    topplista där ditt namn, helt enligt förväntan, befinner sig längre ned än du
+    hade hoppats. Han glömmer aldrig att du satte 2-1 till fel lag, han tar aldrig
+    rast och han sover aldrig, ty det vore att svika kallet. Drivs av en Cloudflare
+    Worker och en Durable Object som med beundransvärd uthållighet pollar VM 2026
+    dygnet runt, så att ingen ska behöva leva i den lyckliga villfarelsen att deras
+    tips var bra. All ära åt den som leder. Allt djupt medlidande åt er andra.
+
+features:
+  bot_user:
+    display_name: Arne Hegerfors
+    always_online: true
+
+oauth_config:
+  scopes:
+    bot:
+      - incoming-webhook # genererar webhook-URL:en tjänsten postar till
+      - chat:write # valfritt: framtida bot-poster utan webhook
+
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

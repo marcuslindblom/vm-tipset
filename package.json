@@ -1,0 +1,22 @@
+{
+  "name": "vm-tipset",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Realtidsrättare för VM-tipset 2026 – pollar API-Football, rättar tips och postar ställningen till Slack.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "tsx --test test/*.test.ts",
+    "import": "tsx scripts/import.ts",
+    "simulate": "tsx scripts/simulate.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250601.0",
+    "fflate": "^0.8.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.20.0"
+  }
+}

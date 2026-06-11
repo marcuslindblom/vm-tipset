@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vm-tipset",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "observability": { "enabled": true },
+
+  "durable_objects": {
+    "bindings": [{ "name": "WATCHER", "class_name": "GoalWatcher" }]
+  },
+  // SQLite-backed DO – krävs för Durable Objects på Workers Free-planen.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GoalWatcher"] }],
+
+  // Heartbeat: säkerställer var minut att poll-loopen lever (startar om den dött).
+  "triggers": { "crons": ["* * * * *"] },
+
+  "vars": {
+    // Direkt api-sports.io. För RapidAPI: "https://api-football-v1.p.rapidapi.com/v3"
+    "APISPORTS_HOST": "https://v3.football.api-sports.io",
+    "WC_LEAGUE_ID": "1",
+    "SEASON": "2026",
+    // Pollar BARA inom ett matchfönster (avsparkstider från Excel) – inget mellan matcher.
+    // 20 s på Pro => mål i Slack inom ~30–45 s. (På Free: höj till 120 för att spara kvot.)
+    "POLL_SECONDS": "20",
+    "MATCH_WINDOW_MINUTES": "130", // avspark + 90 + halvtid + tillägg (höj för förlängning i slutspel)
+    "KICKOFF_LEAD_SECONDS": "60", // börja polla strax före avspark
+    "IDLE_MAX_SLEEP_SECONDS": "3600" // schemakoll minst varje timme mellan matcher (inget API-anrop)
+  }
+  // Hemligheter (sätts med `wrangler secret put` eller .dev.vars lokalt):
+  //   APISPORTS_KEY        – API-Football-nyckel
+  //   SLACK_WEBHOOK_URL    – Slack Incoming Webhook (utelämnad => dry-run, loggar bara)
+}

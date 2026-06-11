@@ -1,0 +1,10 @@
+node_modules/
+.dev.vars
+.wrangler/
+dist/
+*.log
+.DS_Store
+
+# Råa tips-spreadsheets (innehåller namn/mejl) hålls utanför det publika repot.
+# Den genererade src/data/predictions.json (endast namn + tips) committas och driver deployen.
+/data/
