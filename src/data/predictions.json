@@ -2711,11 +2711,78 @@
   "knockout": {
     "Adam": {
       "teamsByRound": {
-        "R32": [],
-        "R16": [],
-        "QF": [],
-        "SF": [],
-        "FINAL": [],
+        "R32": [
+          "Czech Republic",
+          "Canada",
+          "Germany",
+          "Bosnia and Herzegovina",
+          "Netherlands",
+          "Morocco",
+          "Brazil",
+          "Japan",
+          "France",
+          "Iran",
+          "Ecuador",
+          "Norway",
+          "Mexico",
+          "Scotland",
+          "England",
+          "Ivory Coast",
+          "USA",
+          "Senegal",
+          "Belgium",
+          "South Korea",
+          "Colombia",
+          "Croatia",
+          "Spain",
+          "Austria",
+          "Switzerland",
+          "Sweden",
+          "Argentina",
+          "Uruguay",
+          "Portugal",
+          "Ghana",
+          "Turkey",
+          "Egypt"
+        ],
+        "R16": [
+          "Germany",
+          "France",
+          "Canada",
+          "Netherlands",
+          "Brazil",
+          "Norway",
+          "Mexico",
+          "England",
+          "Colombia",
+          "Spain",
+          "USA",
+          "Belgium",
+          "Argentina",
+          "Turkey",
+          "Switzerland",
+          "Portugal"
+        ],
+        "QF": [
+          "Germany",
+          "Netherlands",
+          "Spain",
+          "Belgium",
+          "Brazil",
+          "Mexico",
+          "Argentina",
+          "Switzerland"
+        ],
+        "SF": [
+          "Germany",
+          "Spain",
+          "Brazil",
+          "Argentina"
+        ],
+        "FINAL": [
+          "Spain",
+          "Brazil"
+        ],
         "CHAMPION": [
           "Brazil"
         ]
