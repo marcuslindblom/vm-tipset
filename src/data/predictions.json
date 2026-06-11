@@ -1,12 +1,22 @@
 {
   "generatedFrom": [
-    "VM-Tipset 2026 - Marcus.xlsx"
+    "VM-Tipset 2026 - Adam.xlsx",
+    "VM-Tipset 2026 - Anders.xlsx",
+    "VM-Tipset 2026 - David.xlsx",
+    "VM-Tipset 2026 - Fredrik.xlsx",
+    "VM-Tipset 2026 - Marcus.xlsx",
+    "VM-Tipset 2026 - Mats.xlsx"
   ],
   "keyBy": "fixtureId",
   "leagueId": 1,
   "season": 2026,
   "players": [
-    "Marcus"
+    "Adam",
+    "Anders",
+    "David",
+    "Fredrik",
+    "Marcus",
+    "Mats"
   ],
   "kickoffs": [
     "2026-06-11T19:00:00.000Z",
@@ -826,439 +836,2144 @@
   },
   "groupPredictions": {
     "1489369": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489370": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
         2,
         0
+      ],
+      "Mats": [
+        2,
+        1
       ]
     },
     "1489371": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        3,
+        1
+      ],
       "Marcus": [
         1,
         0
+      ],
+      "Mats": [
+        1,
+        1
       ]
     },
     "1489372": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
         0,
+        2
+      ],
+      "Mats": [
+        1,
         2
       ]
     },
     "1489373": {
+      "Adam": [
+        0,
+        2
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489374": {
+      "Adam": [
+        3,
+        0
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        3,
+        0
+      ],
+      "Fredrik": [
+        3,
+        0
+      ],
       "Marcus": [
+        3,
+        0
+      ],
+      "Mats": [
         3,
         0
       ]
     },
     "1489375": {
+      "Adam": [
+        0,
+        0
+      ],
+      "Anders": [
+        1,
+        2
+      ],
+      "David": [
+        1,
+        2
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
         1,
         1
       ]
     },
     "1489376": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        2,
+        1
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
         2,
         0
-      ]
-    },
-    "1489377": {
-      "Marcus": [
+      ],
+      "Mats": [
         2,
         1
       ]
     },
+    "1489377": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        3,
+        1
+      ],
+      "Marcus": [
+        2,
+        1
+      ],
+      "Mats": [
+        1,
+        1
+      ]
+    },
     "1489378": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        1,
+        0
+      ],
+      "Fredrik": [
+        1,
+        0
+      ],
       "Marcus": [
         1,
+        0
+      ],
+      "Mats": [
+        2,
         0
       ]
     },
     "1489379": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489380": {
+      "Adam": [
+        4,
+        0
+      ],
+      "Anders": [
+        4,
+        0
+      ],
+      "David": [
+        3,
+        0
+      ],
+      "Fredrik": [
+        4,
+        0
+      ],
       "Marcus": [
+        3,
+        0
+      ],
+      "Mats": [
         3,
         0
       ]
     },
     "1489381": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         2,
         0
+      ],
+      "Mats": [
+        2,
+        1
       ]
     },
     "1489382": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489383": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        3,
+        1
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
+        2,
+        1
+      ],
+      "Mats": [
         2,
         1
       ]
     },
     "1489384": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        2
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489385": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        0,
+        1
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         1,
         0
+      ],
+      "Mats": [
+        1,
+        1
       ]
     },
     "1489386": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        1,
+        3
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489387": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         3,
+        0
+      ],
+      "Mats": [
+        2,
         0
       ]
     },
     "1489388": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
         1,
+        1
+      ],
+      "Mats": [
+        2,
         1
       ]
     },
     "1489389": {
+      "Adam": [
+        3,
+        0
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        3,
+        0
+      ],
+      "Fredrik": [
+        3,
+        0
+      ],
       "Marcus": [
+        3,
+        0
+      ],
+      "Mats": [
         3,
         0
       ]
     },
     "1489390": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        1
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
         0,
         1
+      ],
+      "Mats": [
+        0,
+        2
       ]
     },
     "1489391": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489392": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489393": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
+        2,
+        1
+      ],
+      "Mats": [
         2,
         1
       ]
     },
     "1489394": {
+      "Adam": [
+        0,
+        2
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
         0,
         2
+      ],
+      "Mats": [
+        0,
+        3
       ]
     },
     "1489395": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489396": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        3
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489397": {
+      "Adam": [
+        3,
+        1
+      ],
+      "Anders": [
+        4,
+        0
+      ],
+      "David": [
+        3,
+        0
+      ],
+      "Fredrik": [
+        3,
+        1
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489398": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
+        2,
+        1
+      ]
+    },
+    "1489399": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
+      "Marcus": [
+        1,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
-    "1489399": {
-      "Marcus": [
-        1,
-        0
-      ]
-    },
     "1489400": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        1
+      ],
       "Marcus": [
         0,
         1
+      ],
+      "Mats": [
+        0,
+        2
       ]
     },
     "1489401": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        1,
+        1
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
         1,
         1
       ]
     },
     "1489402": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        4,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489403": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489404": {
+      "Adam": [
+        4,
+        1
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        3,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         2,
+        0
+      ],
+      "Mats": [
+        3,
         0
       ]
     },
     "1489405": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     },
     "1489406": {
+      "Adam": [
+        1,
+        2
+      ],
+      "Anders": [
+        0,
+        3
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
         1,
         1
+      ],
+      "Mats": [
+        0,
+        2
       ]
     },
     "1489407": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        1
+      ],
+      "David": [
+        0,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489408": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        2,
+        1
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
         1,
         1
       ]
     },
     "1489409": {
+      "Adam": [
+        0,
+        2
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        2
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489410": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        1,
+        2
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
         1,
+        1
+      ],
+      "Mats": [
+        2,
         1
       ]
     },
     "1489411": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        1,
+        1
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        1,
+        0
+      ],
       "Marcus": [
         1,
         0
+      ],
+      "Mats": [
+        2,
+        1
       ]
     },
     "1489412": {
+      "Adam": [
+        0,
+        3
+      ],
+      "Anders": [
+        0,
+        3
+      ],
+      "David": [
+        0,
+        2
+      ],
+      "Fredrik": [
+        0,
+        3
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
         0,
         2
       ]
     },
     "1489413": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        1,
+        1
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
         0,
+        1
+      ],
+      "Mats": [
+        1,
         1
       ]
     },
     "1489414": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
+        1,
+        0
+      ],
+      "Mats": [
         1,
         0
       ]
     },
     "1489415": {
+      "Adam": [
+        0,
+        2
+      ],
+      "Anders": [
+        0,
+        3
+      ],
+      "David": [
+        0,
+        3
+      ],
+      "Fredrik": [
+        0,
+        4
+      ],
       "Marcus": [
+        0,
+        2
+      ],
+      "Mats": [
+        0,
+        3
+      ]
+    },
+    "1489416": {
+      "Adam": [
+        1,
+        2
+      ],
+      "Anders": [
+        1,
+        3
+      ],
+      "David": [
+        1,
+        2
+      ],
+      "Fredrik": [
+        1,
+        3
+      ],
+      "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
+        1,
+        2
+      ]
+    },
+    "1489417": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        1,
+        2
+      ],
+      "David": [
+        1,
+        2
+      ],
+      "Fredrik": [
+        1,
+        2
+      ],
+      "Marcus": [
+        0,
+        1
+      ],
+      "Mats": [
         0,
         2
       ]
     },
-    "1489416": {
+    "1489418": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        1,
+        2
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
         1,
         1
-      ]
-    },
-    "1489417": {
-      "Marcus": [
-        0,
-        1
-      ]
-    },
-    "1489418": {
-      "Marcus": [
+      ],
+      "Mats": [
         1,
         1
       ]
     },
     "1489419": {
+      "Adam": [
+        1,
+        2
+      ],
+      "Anders": [
+        0,
+        3
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        2
+      ],
       "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
         1,
         1
       ]
     },
     "1489420": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
         2,
         0
+      ],
+      "Mats": [
+        2,
+        1
       ]
     },
     "1489421": {
+      "Adam": [
+        0,
+        2
+      ],
+      "Anders": [
+        0,
+        4
+      ],
+      "David": [
+        0,
+        3
+      ],
+      "Fredrik": [
+        0,
+        3
+      ],
       "Marcus": [
+        0,
+        3
+      ],
+      "Mats": [
         0,
         3
       ]
     },
     "1489422": {
+      "Adam": [
+        0,
+        3
+      ],
+      "Anders": [
+        0,
+        4
+      ],
+      "David": [
+        0,
+        3
+      ],
+      "Fredrik": [
+        0,
+        3
+      ],
       "Marcus": [
+        0,
+        3
+      ],
+      "Mats": [
         0,
         3
       ]
     },
     "1538999": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        1,
+        1
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        2
+      ],
       "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
         1,
         1
       ]
     },
     "1539000": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
+        2,
+        1
+      ],
+      "Mats": [
         2,
         1
       ]
     },
     "1539001": {
+      "Adam": [
+        0,
+        1
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        1,
+        2
+      ],
+      "Fredrik": [
+        1,
+        2
+      ],
       "Marcus": [
         0,
         1
+      ],
+      "Mats": [
+        0,
+        2
       ]
     },
     "1539002": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        1,
+        0
+      ],
       "Marcus": [
         1,
+        0
+      ],
+      "Mats": [
+        2,
         0
       ]
     },
     "1539003": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        3,
+        0
+      ],
       "Marcus": [
         3,
+        0
+      ],
+      "Mats": [
+        2,
         0
       ]
     },
     "1539004": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        1,
+        1
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         1,
         0
-      ]
-    },
-    "1539005": {
-      "Marcus": [
-        1,
+      ],
+      "Mats": [
+        2,
         1
       ]
     },
-    "1539006": {
+    "1539005": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
+        2,
+        0
+      ]
+    },
+    "1539006": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
+      "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
         1,
         1
       ]
     },
     "1539007": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        2,
+        1
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         2,
         0
+      ],
+      "Mats": [
+        2,
+        1
       ]
     },
     "1539008": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        2,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         2,
         0
+      ],
+      "Mats": [
+        2,
+        1
       ]
     },
     "1539009": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        1,
+        1
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
         2,
         0
+      ],
+      "Mats": [
+        1,
+        1
       ]
     },
     "1539010": {
+      "Adam": [
+        1,
+        2
+      ],
+      "Anders": [
+        0,
+        2
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        1,
+        1
+      ],
       "Marcus": [
         0,
+        2
+      ],
+      "Mats": [
+        1,
         2
       ]
     },
     "1539011": {
+      "Adam": [
+        2,
+        1
+      ],
+      "Anders": [
+        2,
+        1
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        2,
+        1
+      ],
       "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
+        1,
+        1
+      ]
+    },
+    "1539012": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        1,
+        2
+      ],
+      "David": [
+        2,
+        1
+      ],
+      "Fredrik": [
+        1,
+        0
+      ],
+      "Marcus": [
+        1,
+        1
+      ],
+      "Mats": [
         1,
         2
       ]
     },
-    "1539012": {
+    "1539013": {
+      "Adam": [
+        1,
+        1
+      ],
+      "Anders": [
+        1,
+        1
+      ],
+      "David": [
+        1,
+        1
+      ],
+      "Fredrik": [
+        0,
+        0
+      ],
       "Marcus": [
+        0,
+        1
+      ],
+      "Mats": [
         1,
         1
       ]
     },
-    "1539013": {
+    "1539016": {
+      "Adam": [
+        0,
+        2
+      ],
+      "Anders": [
+        0,
+        4
+      ],
+      "David": [
+        0,
+        3
+      ],
+      "Fredrik": [
+        1,
+        2
+      ],
       "Marcus": [
         0,
-        1
-      ]
-    },
-    "1539016": {
-      "Marcus": [
+        3
+      ],
+      "Mats": [
         0,
         3
       ]
     },
     "1539017": {
+      "Adam": [
+        2,
+        0
+      ],
+      "Anders": [
+        4,
+        0
+      ],
+      "David": [
+        3,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        3,
+        0
+      ],
+      "Mats": [
         3,
         0
       ]
     },
     "1539074": {
+      "Adam": [
+        1,
+        0
+      ],
+      "Anders": [
+        3,
+        0
+      ],
+      "David": [
+        2,
+        0
+      ],
+      "Fredrik": [
+        2,
+        0
+      ],
       "Marcus": [
+        2,
+        0
+      ],
+      "Mats": [
         2,
         0
       ]
     }
   },
   "knockout": {
+    "Adam": {
+      "teamsByRound": {
+        "R32": [],
+        "R16": [],
+        "QF": [],
+        "SF": [],
+        "FINAL": [],
+        "CHAMPION": [
+          "Brazil"
+        ]
+      },
+      "champion": "Brazil",
+      "topScorer": "Harry Kane",
+      "topScorerGoals": 10,
+      "totalGoals": 198
+    },
+    "Anders": {
+      "teamsByRound": {
+        "R32": [
+          "South Korea",
+          "Canada",
+          "Germany",
+          "Sweden",
+          "Netherlands",
+          "Morocco",
+          "Brazil",
+          "Japan",
+          "France",
+          "Scotland",
+          "Ecuador",
+          "Norway",
+          "Mexico",
+          "Senegal",
+          "England",
+          "Algeria",
+          "USA",
+          "Ivory Coast",
+          "Belgium",
+          "Czech Republic",
+          "Colombia",
+          "Croatia",
+          "Spain",
+          "Austria",
+          "Switzerland",
+          "Iran",
+          "Argentina",
+          "Uruguay",
+          "Portugal",
+          "Panama",
+          "Turkey",
+          "Egypt"
+        ],
+        "R16": [
+          "Germany",
+          "France",
+          "South Korea",
+          "Netherlands",
+          "Brazil",
+          "Norway",
+          "Senegal",
+          "England",
+          "Croatia",
+          "Spain",
+          "USA",
+          "Belgium",
+          "Argentina",
+          "Turkey",
+          "Switzerland",
+          "Portugal"
+        ],
+        "QF": [
+          "France",
+          "Netherlands",
+          "Spain",
+          "Belgium",
+          "Brazil",
+          "England",
+          "Argentina",
+          "Portugal"
+        ],
+        "SF": [
+          "France",
+          "Spain",
+          "Brazil",
+          "Portugal"
+        ],
+        "FINAL": [
+          "France",
+          "Portugal"
+        ],
+        "CHAMPION": [
+          "France"
+        ]
+      },
+      "champion": "France",
+      "topScorer": "Kylian Mbappé",
+      "topScorerGoals": 7,
+      "totalGoals": 285
+    },
+    "David": {
+      "teamsByRound": {
+        "R32": [
+          "Czech Republic",
+          "Canada",
+          "Germany",
+          "Japan",
+          "Netherlands",
+          "Morocco",
+          "Brazil",
+          "Sweden",
+          "France",
+          "Paraguay",
+          "Ecuador",
+          "Norway",
+          "Mexico",
+          "Scotland",
+          "England",
+          "Algeria",
+          "Turkey",
+          "Senegal",
+          "Belgium",
+          "South Korea",
+          "Colombia",
+          "Croatia",
+          "Spain",
+          "Austria",
+          "Switzerland",
+          "Iran",
+          "Argentina",
+          "Uruguay",
+          "Portugal",
+          "Ghana",
+          "USA",
+          "Egypt"
+        ],
+        "R16": [
+          "Germany",
+          "France",
+          "Canada",
+          "Netherlands",
+          "Brazil",
+          "Norway",
+          "Mexico",
+          "England",
+          "Colombia",
+          "Spain",
+          "Turkey",
+          "Belgium",
+          "Argentina",
+          "USA",
+          "Switzerland",
+          "Portugal"
+        ],
+        "QF": [
+          "France",
+          "Netherlands",
+          "Spain",
+          "Belgium",
+          "Brazil",
+          "England",
+          "Argentina",
+          "Portugal"
+        ],
+        "SF": [
+          "France",
+          "Spain",
+          "Brazil",
+          "Argentina"
+        ],
+        "FINAL": [
+          "France",
+          "Brazil"
+        ],
+        "CHAMPION": [
+          "France"
+        ]
+      },
+      "champion": "France",
+      "topScorer": "Kylian Mbappé",
+      "topScorerGoals": 7,
+      "totalGoals": 282
+    },
+    "Fredrik": {
+      "teamsByRound": {
+        "R32": [
+          "Czech Republic",
+          "Canada",
+          "Germany",
+          "Sweden",
+          "Netherlands",
+          "Morocco",
+          "Brazil",
+          "Japan",
+          "France",
+          "Paraguay",
+          "Ecuador",
+          "Senegal",
+          "Mexico",
+          "Norway",
+          "England",
+          "Algeria",
+          "USA",
+          "Bosnia and Herzegovina",
+          "Belgium",
+          "Ivory Coast",
+          "Colombia",
+          "Croatia",
+          "Spain",
+          "Austria",
+          "Switzerland",
+          "Iran",
+          "Argentina",
+          "Uruguay",
+          "Portugal",
+          "Ghana",
+          "Turkey",
+          "Egypt"
+        ],
+        "R16": [
+          "Germany",
+          "France",
+          "Czech Republic",
+          "Netherlands",
+          "Brazil",
+          "Senegal",
+          "Mexico",
+          "England",
+          "Colombia",
+          "Spain",
+          "USA",
+          "Belgium",
+          "Argentina",
+          "Turkey",
+          "Switzerland",
+          "Portugal"
+        ],
+        "QF": [
+          "France",
+          "Netherlands",
+          "Spain",
+          "Belgium",
+          "Brazil",
+          "England",
+          "Argentina",
+          "Portugal"
+        ],
+        "SF": [
+          "France",
+          "Spain",
+          "England",
+          "Argentina"
+        ],
+        "FINAL": [
+          "Spain",
+          "Argentina"
+        ],
+        "CHAMPION": [
+          "Spain"
+        ]
+      },
+      "champion": "Spain",
+      "topScorer": "Kylian Mbappé",
+      "topScorerGoals": 6,
+      "totalGoals": 282
+    },
     "Marcus": {
       "teamsByRound": {
         "R32": [
@@ -1269,7 +2984,7 @@
           "Netherlands",
           "Morocco",
           "Brazil",
-          "Sweden",
+          "Japan",
           "France",
           "Paraguay",
           "Ecuador",
@@ -1320,18 +3035,18 @@
           "USA",
           "Brazil",
           "England",
-          "Turkey",
-          "Sweden"
+          "Argentina",
+          "Portugal"
         ],
         "SF": [
           "France",
           "Spain",
           "England",
-          "Turkey"
+          "Argentina"
         ],
         "FINAL": [
           "Spain",
-          "Turkey"
+          "Argentina"
         ],
         "CHAMPION": [
           "Spain"
@@ -1339,8 +3054,91 @@
       },
       "champion": "Spain",
       "topScorer": "Kylian Mbappé",
-      "topScorerGoals": 8,
-      "totalGoals": 281
+      "topScorerGoals": 7,
+      "totalGoals": 285
+    },
+    "Mats": {
+      "teamsByRound": {
+        "R32": [
+          "South Korea",
+          "Canada",
+          "Ecuador",
+          "Scotland",
+          "Netherlands",
+          "Morocco",
+          "Brazil",
+          "Japan",
+          "France",
+          "Iran",
+          "Germany",
+          "Norway",
+          "Mexico",
+          "Ivory Coast",
+          "England",
+          "Austria",
+          "USA",
+          "Sweden",
+          "Belgium",
+          "Czech Republic",
+          "Colombia",
+          "Croatia",
+          "Spain",
+          "Algeria",
+          "Switzerland",
+          "Senegal",
+          "Argentina",
+          "Uruguay",
+          "Portugal",
+          "Paraguay",
+          "Turkey",
+          "Egypt"
+        ],
+        "R16": [
+          "Ecuador",
+          "France",
+          "Canada",
+          "Morocco",
+          "Brazil",
+          "Germany",
+          "Mexico",
+          "England",
+          "Colombia",
+          "Spain",
+          "USA",
+          "Belgium",
+          "Argentina",
+          "Turkey",
+          "Senegal",
+          "Portugal"
+        ],
+        "QF": [
+          "France",
+          "Morocco",
+          "Spain",
+          "Belgium",
+          "Brazil",
+          "England",
+          "Argentina",
+          "Portugal"
+        ],
+        "SF": [
+          "France",
+          "Spain",
+          "England",
+          "Argentina"
+        ],
+        "FINAL": [
+          "Spain",
+          "Argentina"
+        ],
+        "CHAMPION": [
+          "Spain"
+        ]
+      },
+      "champion": "Spain",
+      "topScorer": "Michael Olise",
+      "topScorerGoals": 7,
+      "totalGoals": 288
     }
   }
 }

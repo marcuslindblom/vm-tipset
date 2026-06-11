@@ -8,6 +8,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "test": "tsx --test test/*.test.ts",
+    "validate": "tsx scripts/validate.ts",
     "import": "tsx scripts/import.ts",
     "simulate": "tsx scripts/simulate.ts",
     "typecheck": "tsc --noEmit"
