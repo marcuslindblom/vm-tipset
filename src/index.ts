@@ -4,6 +4,7 @@ import type { Env, LiveMatch } from "./types";
 import { GoalWatcher } from "./watcher";
 import { fixtures, keyBy, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
+import { generateCommentary } from "./commentary";
 
 const KICKOFFS_MS = toKickoffMs(kickoffs);
 
@@ -73,6 +74,33 @@ export default {
       case "/reset":
         if (req.method !== "POST") return json({ error: "POST krävs" }, 405);
         return json(await w.reset());
+
+      case "/test/commentary": {
+        // Genererar ETT exempel-referat och returnerar det (postar inget till Slack).
+        const started = Date.now();
+        const text = await generateCommentary(env, {
+          kind: "goal",
+          home: "Brasilien",
+          away: "Serbien",
+          score: { home: 2, away: 1 },
+          minute: 78,
+          round: "Grupp C",
+          scorer: "Vinícius Jr",
+          assist: "Rodrygo",
+          tippers: [
+            { player: "Adam", pred: "2-1", outcome: "exakt" },
+            { player: "Marcus", pred: "0-0", outcome: "fel" },
+          ],
+          leader: "Adam",
+          movers: "Adam ▲2, Marcus ▼1",
+        });
+        return json({
+          model: env.GEMINI_MODEL,
+          hasKey: Boolean(env.GOOGLE_GENERATIVE_AI_API_KEY),
+          ms: Date.now() - started,
+          commentary: text,
+        });
+      }
 
       case "/test/goal": {
         // Ex: /test/goal?key=<matchnyckel>&home=1&away=0&min=23
