@@ -14,7 +14,7 @@ import {
   fixtures,
 } from "../src/predictions.ts";
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "../src/engine.ts";
-import { computeStandings, gradeMatch, type Prediction } from "../src/scoring.ts";
+import { computeStandings, gradeMatch, isExact, type Prediction } from "../src/scoring.ts";
 import { headline, standingsText, type GoalView } from "../src/slack.ts";
 import { generateCommentary, type CommentaryContext, type TipperView } from "../src/commentary.ts";
 import type { Env, LiveMatch, MatchEvent, MatchResult, Score } from "../src/types.ts";
@@ -106,8 +106,8 @@ async function tick(active: string[]): Promise<void> {
     const names = displayNames(c.key, c.match);
     const tippers: TipperView[] = [];
     for (const [player, p] of preds.get(c.key) ?? []) {
-      const pts = gradeMatch(p, c.match.score);
-      tippers.push({ player, pred: `${p.home}-${p.away}`, outcome: pts === 5 ? "exakt" : pts > 0 ? "rätt tecken" : "fel" });
+      const outcome = isExact(p, c.match.score) ? "exakt" : gradeMatch(p, c.match.score) > 0 ? "rätt tecken" : "fel";
+      tippers.push({ player, pred: `${p.home}-${p.away}`, outcome });
     }
     const ctx: CommentaryContext = {
       kind: c.kind, home: names.home, away: names.away, score: c.match.score, minute: c.match.elapsed,
