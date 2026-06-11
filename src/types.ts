@@ -11,6 +11,7 @@ export interface Env {
   MATCH_WINDOW_MINUTES: string; // hur länge efter avspark en match anses pågå
   KICKOFF_LEAD_SECONDS: string; // hur långt före avspark loopen vaknar
   IDLE_MAX_SLEEP_SECONDS: string; // max sovtid mellan matcher (schemakoll, inget API-anrop)
+  COMPANY_NAME?: string; // företaget tipset körs på (Arne nämner det i referaten)
   GEMINI_MODEL: string; // primär referat-modell, t.ex. "gemini-3.5-flash"
   GEMINI_FALLBACK_MODEL?: string; // används vid rate limit, t.ex. "gemini-2.0-flash"
   GOOGLE_GENERATIVE_AI_API_KEY?: string; // saknas => referat hoppas över (vanligt meddelande)
