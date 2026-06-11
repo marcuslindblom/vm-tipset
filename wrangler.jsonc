@@ -3,6 +3,7 @@
   "name": "vm-tipset",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"], // krävs av Vercel AI SDK
   "observability": { "enabled": true },
 
   "durable_objects": {
@@ -24,8 +25,11 @@
     "POLL_SECONDS": "20",
     "MATCH_WINDOW_MINUTES": "130", // avspark + 90 + halvtid + tillägg (höj för förlängning i slutspel)
     "KICKOFF_LEAD_SECONDS": "60", // börja polla strax före avspark
-    "IDLE_MAX_SLEEP_SECONDS": "3600" // schemakoll minst varje timme mellan matcher (inget API-anrop)
+    "IDLE_MAX_SLEEP_SECONDS": "3600", // schemakoll minst varje timme mellan matcher (inget API-anrop)
+    "GEMINI_MODEL": "gemini-3.5-flash", // Arnes referat-modell (kvalitet; 5 anrop/min på free)
+    "GEMINI_FALLBACK_MODEL": "gemini-2.0-flash" // används om primärmodellen rate-limitas (15/min)
   }
+  // Hemlighet GOOGLE_GENERATIVE_AI_API_KEY (valfri): utan den hoppas referatet över.
   // Hemligheter (sätts med `wrangler secret put` eller .dev.vars lokalt):
   //   APISPORTS_KEY        – API-Football-nyckel
   //   SLACK_WEBHOOK_URL    – Slack Incoming Webhook (utelämnad => dry-run, loggar bara)

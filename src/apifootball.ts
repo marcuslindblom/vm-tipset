@@ -22,6 +22,14 @@ function mapFixture(f: any): LiveMatch {
     score: { home: f.goals.home ?? 0, away: f.goals.away ?? 0 },
     status: f.fixture.status.short,
     elapsed: f.fixture.status.elapsed ?? null,
+    events: (f.events ?? []).map((e: any) => ({
+      type: e.type ?? "",
+      detail: e.detail ?? "",
+      team: e.team?.name ?? "",
+      player: e.player?.name ?? "",
+      assist: e.assist?.name || undefined,
+      elapsed: e.time?.elapsed ?? null,
+    })),
   };
 }
 

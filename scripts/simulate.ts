@@ -1,10 +1,11 @@
-// E2E-simulering UTAN API/Slack: spelar upp en matchdag mål-för-mål genom exakt
-// samma motor som Durable Object kör (engine + scoring + slack-builder), med riktiga
-// 2026-matcher och Marcus riktiga tips + tre syntetiska motspelare. Verifierar att
-// rättning, ställning, pilar och Slack-formattering blir rätt.
+// E2E-simulering UTAN API/Slack: spelar upp en matchdag genom exakt samma motor som
+// Durable Object (engine + scoring + commentary + slack-builder), med riktiga 2026-matcher,
+// Marcus riktiga tips + syntetiska motspelare, målskyttar, ett rött kort — och Arnes
+// AI-referat (om GOOGLE_GENERATIVE_AI_API_KEY finns i .dev.vars).
 //
 //   npm run simulate
 
+import { readFileSync } from "node:fs";
 import {
   players as realPlayers,
   predictionsByMatch,
@@ -12,41 +13,54 @@ import {
   displayNames,
   fixtures,
 } from "../src/predictions.ts";
-import { applyLiveSnapshot, finalizeGone, type Change } from "../src/engine.ts";
-import { computeStandings, type Prediction, type StandingRow } from "../src/scoring.ts";
-import { buildGoalMessage, standingsText, type GoalView } from "../src/slack.ts";
-import type { LiveMatch, MatchResult, Score } from "../src/types.ts";
+import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "../src/engine.ts";
+import { computeStandings, gradeMatch, type Prediction } from "../src/scoring.ts";
+import { headline, standingsText, type GoalView } from "../src/slack.ts";
+import { generateCommentary, type CommentaryContext, type TipperView } from "../src/commentary.ts";
+import type { Env, LiveMatch, MatchEvent, MatchResult, Score } from "../src/types.ts";
+
+// Bygg en minimal env från .dev.vars (för Arnes referat).
+function devEnv(): Env {
+  const out: Record<string, string> = {};
+  try {
+    for (const line of readFileSync(".dev.vars", "utf8").split("\n")) {
+      const m = /^\s*([A-Z_]+)\s*=\s*(.+)\s*$/.exec(line);
+      if (m) out[m[1]] = m[2].trim();
+    }
+  } catch {}
+  return { GEMINI_MODEL: out.GEMINI_MODEL || "gemini-3.5-flash", GOOGLE_GENERATIVE_AI_API_KEY: out.GOOGLE_GENERATIVE_AI_API_KEY } as Env;
+}
+const env = devEnv();
 
 function findKey(homeSv: string, awaySv: string): string {
-  for (const [key, f] of Object.entries(fixtures)) {
-    if (f.homeSv === homeSv && f.awaySv === awaySv) return key;
-  }
+  for (const [key, f] of Object.entries(fixtures)) if (f.homeSv === homeSv && f.awaySv === awaySv) return key;
   throw new Error(`hittade ingen match ${homeSv} - ${awaySv}`);
 }
 
-// Tre riktiga matcher från matchdag 1.
-const A = findKey("Mexiko", "Sydafrika"); // Marcus tippar 2-0
-const B = findKey("Spanien", "Kap Verde"); // Marcus tippar 3-0
-const C = findKey("Sverige", "Tunisien"); // Marcus tippar 1-0
+const A = findKey("Mexiko", "Sydafrika"); // Marcus 2-0
+const B = findKey("Spanien", "Kap Verde"); // Marcus 3-0
+const C = findKey("Sverige", "Tunisien"); // Marcus 1-0
 
-// Syntetiska motspelare (Marcus tips kommer från Excel-importen).
 const SYNTH: Record<string, Record<string, Prediction>> = {
   Anna: { [A]: { home: 1, away: 1 }, [B]: { home: 1, away: 1 }, [C]: { home: 1, away: 1 } },
   Erik: { [A]: { home: 2, away: 1 }, [B]: { home: 2, away: 0 }, [C]: { home: 0, away: 0 } },
   Johan: { [A]: { home: 0, away: 2 }, [B]: { home: 1, away: 1 }, [C]: { home: 2, away: 1 } },
 };
-
 const allPlayers = [...realPlayers, ...Object.keys(SYNTH)];
 const preds = predictionsByMatch();
-for (const [player, byKey] of Object.entries(SYNTH)) {
+for (const [player, byKey] of Object.entries(SYNTH))
   for (const [key, p] of Object.entries(byKey)) {
     if (!preds.has(key)) preds.set(key, new Map());
     preds.get(key)!.set(player, p);
   }
-}
 
-// Bygg en LiveMatch utifrån en match i tipsdatan.
-function live(key: string, home: number, away: number, status: string, min: number): LiveMatch {
+// Aktuellt läge per match: ställning, minut, status, events.
+const cur: Record<string, { h: number; a: number; min: number; status: string; events: MatchEvent[] }> = {
+  [A]: { h: 0, a: 0, min: 0, status: "1H", events: [] },
+  [B]: { h: 0, a: 0, min: 0, status: "1H", events: [] },
+  [C]: { h: 0, a: 0, min: 0, status: "1H", events: [] },
+};
+function live(key: string): LiveMatch {
   const f = fixtures[key];
   return {
     fixtureId: f.fixtureId ?? 0,
@@ -55,101 +69,103 @@ function live(key: string, home: number, away: number, status: string, min: numb
     date: "",
     home: { id: 0, name: f.home },
     away: { id: 0, name: f.away },
-    score: { home, away },
-    status,
-    elapsed: min,
+    score: { home: cur[key].h, away: cur[key].a },
+    status: cur[key].status,
+    elapsed: cur[key].min,
+    events: cur[key].events,
   };
 }
-
-// Aktuell ställning per match; varje event uppdaterar en match och bygger ett snapshot.
-const cur: Record<string, { h: number; a: number; min: number; status: string }> = {
-  [A]: { h: 0, a: 0, min: 0, status: "1H" },
-  [B]: { h: 0, a: 0, min: 0, status: "1H" },
-  [C]: { h: 0, a: 0, min: 0, status: "1H" },
-};
 function snapshot(keys: string[]): LiveMatch[] {
-  return keys.map((k) => live(k, cur[k].h, cur[k].a, cur[k].status, cur[k].min));
+  return keys.map(live);
 }
 
 // ── Harness som speglar Durable Object.process() ──────────────────────────────
 let results: Record<string, MatchResult> = {};
 let liveKeys: string[] = [];
+let seen = new Set<string>();
 let ranking: Record<string, number> = {};
+const scoreMap = (r: Record<string, MatchResult>) => new Map(Object.entries(r).map(([k, v]) => [k, v.score]));
 
-function scoreMap(r: Record<string, MatchResult>): Map<string, Score> {
-  return new Map(Object.entries(r).map(([k, v]) => [k, v.score]));
-}
-
-function tick(activeKeys: string[]): void {
-  const snap = snapshot(activeKeys);
+async function tick(active: string[]): Promise<void> {
+  const snap = snapshot(active);
+  const baseline = new Set(snap.map(keyOfLive).filter((k) => !results[k]));
   const diff = applyLiveSnapshot(results, liveKeys, snap, keyOfLive);
   const finals = finalizeGone(diff.results, diff.goneKeys, new Map(diff.goneKeys.map((k) => [k, null])));
+  const ev = diffEvents(seen, snap, keyOfLive, baseline);
   results = diff.results;
   liveKeys = diff.liveKeys;
-  const changes: Change[] = [...diff.changes, ...finals];
-  if (changes.length === 0) return;
+  seen = ev.seen;
+  const changes: Change[] = [...diff.changes, ...ev.changes, ...finals];
+  if (!changes.length) return;
 
-  const standings = computeStandings(
-    allPlayers,
-    preds,
-    scoreMap(results),
-    new Map(),
-    new Map(Object.entries(ranking)),
-  );
+  const standings = computeStandings(allPlayers, preds, scoreMap(results), new Map(), new Map(Object.entries(ranking)));
+  const leader = standings[0]?.player;
+  const movers = standings.filter((r) => r.delta !== 0).slice(0, 3).map((r) => `${r.player} ${r.delta > 0 ? "▲" + r.delta : "▼" + -r.delta}`).join(", ");
 
   for (const c of changes) {
     const names = displayNames(c.key, c.match);
-    const view: GoalView = {
-      homeName: names.home,
-      awayName: names.away,
-      score: c.match.score,
-      prevScore: c.prev,
-      minute: c.match.elapsed,
-      finished: c.finished,
-      disallowed: c.disallowed,
+    const tippers: TipperView[] = [];
+    for (const [player, p] of preds.get(c.key) ?? []) {
+      const pts = gradeMatch(p, c.match.score);
+      tippers.push({ player, pred: `${p.home}-${p.away}`, outcome: pts === 5 ? "exakt" : pts > 0 ? "rätt tecken" : "fel" });
+    }
+    const ctx: CommentaryContext = {
+      kind: c.kind, home: names.home, away: names.away, score: c.match.score, minute: c.match.elapsed,
+      round: `Grupp ${fixtures[c.key].group}`, scorer: c.scorer, assist: c.assist, detail: c.detail, team: c.team, tippers, leader, movers,
     };
-    const msg = buildGoalMessage(view, standings);
-    render(msg.text, standings);
+    const commentary = await generateCommentary(env, ctx);
+    const view: GoalView = { kind: c.kind, homeName: names.home, awayName: names.away, score: c.match.score, minute: c.match.elapsed, scorer: c.scorer, detail: c.detail, team: c.team, commentary };
+    render(view, commentary, standings);
   }
   ranking = Object.fromEntries(standings.map((r) => [r.player, r.rank]));
 }
 
-function render(title: string, standings: StandingRow[]): void {
-  console.log("\n┌─ Slack → #vm-tipset " + "─".repeat(40));
-  console.log("│ " + title);
-  console.log("│ 🏆 Ställning (live)");
-  for (const line of standingsText(standings).split("\n")) console.log("│   " + line);
-  console.log("└" + "─".repeat(61));
+function render(view: GoalView, commentary: string | null, standings: any[]): void {
+  console.log("\n┌─ Slack → #vm-tipset " + "─".repeat(44));
+  console.log("│ " + headline(view));
+  if (commentary) for (const l of wrap(`🎙️ ${commentary} — Arne`, 60)) console.log("│ " + l);
+  console.log("│ 🏆 Ställning");
+  for (const l of standingsText(standings).split("\n")) console.log("│   " + l);
+  console.log("└" + "─".repeat(65));
+}
+function wrap(s: string, w: number): string[] {
+  const words = s.split(" "), out: string[] = [];
+  let line = "";
+  for (const word of words) {
+    if ((line + " " + word).trim().length > w) { out.push(line.trim()); line = word; } else line += " " + word;
+  }
+  if (line.trim()) out.push(line.trim());
+  return out;
 }
 
-function goal(key: string, h: number, a: number, min: number): void {
-  cur[key] = { h, a, min, status: min > 45 ? "2H" : "1H" };
+// Hjälpare för att lägga mål/kort med skytt.
+function goal(key: string, h: number, a: number, min: number, scorer: string, team: "home" | "away", assist?: string): void {
+  cur[key].h = h; cur[key].a = a; cur[key].min = min; cur[key].status = min > 45 ? "2H" : "1H";
+  cur[key].events.push({ type: "Goal", detail: "Normal Goal", team: fixtures[key][team === "home" ? "home" : "away"], player: scorer, assist, elapsed: min });
+}
+function redCard(key: string, min: number, player: string, team: "home" | "away"): void {
+  cur[key].min = min; cur[key].status = min > 45 ? "2H" : "1H";
+  cur[key].events.push({ type: "Card", detail: "Red Card", team: fixtures[key][team === "home" ? "home" : "away"], player, elapsed: min });
 }
 
-// ── Scenario: matchdag med tre samtidiga matcher ──────────────────────────────
-console.log("VM-tipset – E2E-simulering (riktiga matcher + Marcus riktiga tips)\n");
-console.log("Spelare:", allPlayers.join(", "), "  (Anna/Erik/Johan = syntetiska motspelare)");
-console.log("Matcher:");
-for (const k of [A, B, C]) console.log(`  ${fixtures[k].homeSv} – ${fixtures[k].awaySv}  (Marcus: ${preds.get(k)!.get("Marcus")!.home}-${preds.get(k)!.get("Marcus")!.away})`);
+// ── Scenario ──────────────────────────────────────────────────────────────────
+console.log("VM-tipset – E2E-simulering med Arnes AI-referat" + (env.GOOGLE_GENERATIVE_AI_API_KEY ? "" : "  (ingen Gemini-nyckel → utan referat)"));
+console.log("Spelare:", allPlayers.join(", "), " (Anna/Erik/Johan = syntetiska)\n");
 
 const all = [A, B, C];
-tick(all); // baseline 0-0, ingen post
+await tick(all); // baseline
 
-goal(B, 1, 0, 12); tick(all);
-goal(A, 1, 0, 23); tick(all);
-goal(C, 1, 0, 33); tick(all);
-goal(A, 1, 1, 41); tick(all);
-goal(B, 2, 0, 55); tick(all);
-goal(A, 2, 1, 67); tick(all);
-goal(C, 2, 0, 70); tick(all); // mål...
-goal(C, 1, 0, 72); tick(all); // ...som underkänns av VAR
-goal(B, 3, 0, 78); tick(all);
+goal(B, 1, 0, 12, "Lamine Yamal", "home", "Pedri"); await tick(all);
+goal(A, 1, 0, 23, "J. Quiñones", "home"); await tick(all);
+redCard(C, 38, "M. Daoud", "away"); await tick(all);
+goal(A, 1, 1, 41, "P. Mahlambi", "away"); await tick(all);
+goal(B, 2, 0, 55, "Á. Morata", "home"); await tick(all);
+goal(A, 2, 1, 67, "R. Jiménez", "home", "R. Alvarado"); await tick(all);
+goal(B, 3, 0, 78, "Nico Williams", "home"); await tick(all);
 
-// Matcherna spelas färdigt och faller ur live-listan => slutresultat postas.
-console.log("\n— matcherna slutspelas (faller ur live=all) —");
-tick([]);
+console.log("\n— matcherna slutspelas —");
+await tick([]);
 
 console.log("\n=== Slutställning ===");
-for (const r of computeStandings(allPlayers, preds, scoreMap(results))) {
-  console.log(`  ${r.rank}. ${r.player.padEnd(8)} ${String(r.points).padStart(2)} p  (grupp ${r.groupPoints}, ${r.exact} exakta)`);
-}
+for (const r of computeStandings(allPlayers, preds, scoreMap(results)))
+  console.log(`  ${r.rank}. ${r.player.padEnd(8)} ${String(r.points).padStart(2)} p (${r.exact} exakta)`);

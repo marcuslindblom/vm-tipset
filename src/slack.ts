@@ -1,17 +1,20 @@
-// Slack Block Kit-meddelanden: målnotis + snygg topplista med upp/ned-pilar.
+// Slack Block Kit-meddelanden: händelsenotis + Arnes referat + topplista med pilar.
 // Utan SLACK_WEBHOOK_URL körs allt i dry-run (loggar payloaden i stället för att posta).
 
 import type { Env, Score } from "./types";
 import type { StandingRow } from "./scoring";
+import type { ChangeKind } from "./engine";
 
 export interface GoalView {
-  homeName: string; // visningsnamn (svenska)
+  kind: ChangeKind;
+  homeName: string;
   awayName: string;
   score: Score;
-  prevScore?: Score;
   minute: number | null;
-  finished: boolean;
-  disallowed: boolean; // ställningen gick ned (VAR)
+  scorer?: string;
+  detail?: string; // "Penalty", "Own Goal", "Second Yellow card" …
+  team?: string; // lag för kort/straff
+  commentary?: string | null; // Arnes AI-referat (kan saknas)
 }
 
 function arrow(delta: number): string {
@@ -38,34 +41,59 @@ export function standingsText(rows: StandingRow[]): string {
     .join("\n");
 }
 
-function headline(g: GoalView): string {
-  const s = `${g.homeName} ${g.score.home}–${g.score.away} ${g.awayName}`;
-  if (g.disallowed) return `🚫 Mål underkänt – ${s}`;
-  if (g.finished) return `✅ Slutresultat: ${s}`;
+function scoreLine(g: GoalView): string {
+  return `${g.homeName} ${g.score.home}–${g.score.away} ${g.awayName}`;
+}
+
+function goalSuffix(detail?: string): string {
+  if (!detail) return "";
+  if (/penalty/i.test(detail)) return " (straff)";
+  if (/own goal/i.test(detail)) return " (självmål)";
+  return "";
+}
+
+export function headline(g: GoalView): string {
   const min = g.minute != null ? ` (${g.minute}')` : "";
-  return `⚽ MÅL! ${s}${min}`;
+  switch (g.kind) {
+    case "goal":
+      return `⚽ MÅL! ${scoreLine(g)}${min}${g.scorer ? ` – ${g.scorer}${goalSuffix(g.detail)}` : ""}`;
+    case "disallowed":
+      return `🚫 Mål underkänt – ${scoreLine(g)}`;
+    case "halftime":
+      return `⏸️ Halvtid: ${scoreLine(g)}`;
+    case "fulltime":
+      return `✅ Slutresultat: ${scoreLine(g)}`;
+    case "redcard": {
+      const kind = /second yellow/i.test(g.detail ?? "") ? "Andra gula → rött" : "Rött kort";
+      return `🟥 ${kind} – ${g.scorer ?? ""}${g.team ? ` (${g.team})` : ""}${min} · ${scoreLine(g)}`;
+    }
+    case "penalty_missed":
+      return `❌ Missad straff – ${g.scorer ?? ""}${min} · ${scoreLine(g)}`;
+  }
 }
 
 export interface SlackMessage {
-  text: string; // fallback-text för notiser
+  text: string;
   blocks: unknown[];
 }
 
 export function buildGoalMessage(g: GoalView, standings: StandingRow[]): SlackMessage {
   const title = headline(g);
-  return {
-    text: title,
-    blocks: [
-      { type: "section", text: { type: "mrkdwn", text: `*${title}*` } },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "🏆 *Ställning (live)*\n```\n" + standingsText(standings) + "\n```",
-        },
-      },
-    ],
-  };
+  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: `*${title}*` } }];
+
+  if (g.commentary) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `> _${g.commentary}_\n> — Arne` },
+    });
+  }
+
+  blocks.push({
+    type: "section",
+    text: { type: "mrkdwn", text: "🏆 *Ställning*\n```\n" + standingsText(standings) + "\n```" },
+  });
+
+  return { text: title, blocks };
 }
 
 /** Fristående topplista (t.ex. /standings-route eller manuell post). */

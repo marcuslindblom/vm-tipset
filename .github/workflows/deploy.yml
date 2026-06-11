@@ -37,6 +37,12 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           APISPORTS_KEY: ${{ secrets.APISPORTS_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
         run: |
           printf '%s' "$APISPORTS_KEY" | npx wrangler secret put APISPORTS_KEY
           printf '%s' "$SLACK_WEBHOOK_URL" | npx wrangler secret put SLACK_WEBHOOK_URL
+          if [ -n "$GOOGLE_GENERATIVE_AI_API_KEY" ]; then
+            printf '%s' "$GOOGLE_GENERATIVE_AI_API_KEY" | npx wrangler secret put GOOGLE_GENERATIVE_AI_API_KEY
+          else
+            echo "GOOGLE_GENERATIVE_AI_API_KEY ej satt – hoppar över (referat avstängt)"
+          fi

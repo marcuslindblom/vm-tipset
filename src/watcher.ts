@@ -1,18 +1,20 @@
-// GoalWatcher: en singleton-Durable-Object som pollar API-Football, upptäcker mål,
-// rättar tipsen och postar ställningen till Slack. Entrådig => ingen kapplöpning om
-// "förra ställningen".
+// GoalWatcher: singleton-Durable-Object som pollar API-Football, upptäcker händelser
+// (mål, halvtid, fulltid, röda kort), rättar tipsen, låter Arne kommentera och postar
+// till Slack. Entrådig => ingen kapplöpning om "förra ställningen".
 
 import { DurableObject } from "cloudflare:workers";
 import type { Env, LiveMatch, MatchResult, Score } from "./types";
 import { ApiFootball } from "./apifootball";
-import { applyLiveSnapshot, finalizeGone, type Change } from "./engine";
-import { computeStandings, type StandingRow } from "./scoring";
-import { players, predictionsByMatch, keyOfLive, displayNames, kickoffs } from "./predictions";
+import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "./engine";
+import { computeStandings, gradeMatch, type StandingRow } from "./scoring";
+import { players, predictionsByMatch, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
+import { toSwedish } from "./teams";
 import { buildGoalMessage, postSlack, type GoalView } from "./slack";
+import { generateCommentary, type CommentaryContext, type TipperView } from "./commentary";
 
-// Avsparkstiderna är statiska – tolka en gång.
 const KICKOFFS_MS = toKickoffMs(kickoffs);
+type Preds = ReturnType<typeof predictionsByMatch>;
 
 export class GoalWatcher extends DurableObject<Env> {
   private api(): ApiFootball {
@@ -23,7 +25,6 @@ export class GoalWatcher extends DurableObject<Env> {
   }
 
   // ── Schemaläggning ────────────────────────────────────────────────────────
-  /** Heartbeat från cron: starta loopen om den inte redan är armerad. */
   async ensureAlarm(): Promise<{ scheduled: boolean }> {
     const cur = await this.ctx.storage.getAlarm();
     if (cur == null) {
@@ -41,7 +42,6 @@ export class GoalWatcher extends DurableObject<Env> {
 
     let nextAlarm: number;
     if (anyLive) {
-      // Inom ett matchfönster: polla och boka nästa pollning om POLL_SECONDS.
       try {
         const api = this.api();
         const live = await api.liveFixtures(this.leagueId());
@@ -51,8 +51,6 @@ export class GoalWatcher extends DurableObject<Env> {
       }
       nextAlarm = Date.now() + Number(this.env.POLL_SECONDS) * 1000;
     } else {
-      // Ingen match nu: sov fram till nästa avspark (minus lead) – INGET API-anrop.
-      // Cappas så vi schemakollar minst varje IDLE_MAX_SLEEP_SECONDS.
       const idleCap = now + Number(this.env.IDLE_MAX_SLEEP_SECONDS) * 1000;
       const wake = nextKickoffMs != null ? nextKickoffMs - leadMs : idleCap;
       nextAlarm = Math.min(Math.max(wake, now + 1000), idleCap);
@@ -68,7 +66,6 @@ export class GoalWatcher extends DurableObject<Env> {
     return { live: live.length, changes: n };
   }
 
-  /** Injicera ett syntetiskt live-snapshot (test/dev, utan riktiga API-anrop). */
   async injectSnapshot(live: LiveMatch[]): Promise<{ changes: number }> {
     const n = await this.process(null, live);
     return { changes: n };
@@ -88,10 +85,14 @@ export class GoalWatcher extends DurableObject<Env> {
   private async process(api: ApiFootball | null, live: LiveMatch[]): Promise<number> {
     const prevResults = await this.loadResults();
     const prevLiveKeys = (await this.ctx.storage.get<string[]>("liveKeys")) ?? [];
+    const seenEvents = new Set<string>((await this.ctx.storage.get<string[]>("seenEvents")) ?? []);
+
+    // Matcher vi ser för första gången => seeda events tyst (inga gamla röda kort).
+    const baselineKeys = new Set<string>(live.map(keyOfLive).filter((k) => !prevResults[k]));
 
     const diff = applyLiveSnapshot(prevResults, prevLiveKeys, live, keyOfLive);
 
-    // Finalisera matcher som fallit ur live-listan (hämta slutstatus om möjligt).
+    // Finalisera matcher som fallit ur live-listan.
     const fetched = new Map<string, LiveMatch | null>();
     for (const key of diff.goneKeys) {
       const prev = diff.results[key];
@@ -106,32 +107,41 @@ export class GoalWatcher extends DurableObject<Env> {
       fetched.set(key, fin);
     }
     const finalChanges = finalizeGone(diff.results, diff.goneKeys, fetched);
-    const changes: Change[] = [...diff.changes, ...finalChanges];
+
+    // Övriga dramatiska händelser (röda kort, missade straffar).
+    const ev = diffEvents(seenEvents, live, keyOfLive, baselineKeys);
+
+    const changes: Change[] = [...diff.changes, ...ev.changes, ...finalChanges];
 
     await this.ctx.storage.put("results", diff.results);
     await this.ctx.storage.put("liveKeys", diff.liveKeys);
+    await this.ctx.storage.put("seenEvents", [...ev.seen]);
 
     if (changes.length === 0) return 0;
 
+    const preds = predictionsByMatch();
     const prevRanking = rankingMap(await this.loadRanking());
-    const standings = computeStandings(
-      players,
-      predictionsByMatch(),
-      scoreMap(diff.results),
-      new Map(),
-      prevRanking,
-    );
+    const standings = computeStandings(players, preds, scoreMap(diff.results), new Map(), prevRanking);
+    const leader = standings[0]?.player;
+    const movers = standings
+      .filter((r) => r.delta !== 0)
+      .slice(0, 3)
+      .map((r) => `${r.player} ${r.delta > 0 ? "▲" + r.delta : "▼" + -r.delta}`)
+      .join(", ");
 
     for (const c of changes) {
       const names = displayNames(c.key, c.match);
+      const commentary = await generateCommentary(this.env, this.contextFor(c, names, preds, leader, movers));
       const view: GoalView = {
+        kind: c.kind,
         homeName: names.home,
         awayName: names.away,
         score: c.match.score,
-        prevScore: c.prev,
         minute: c.match.elapsed,
-        finished: c.finished,
-        disallowed: c.disallowed,
+        scorer: c.scorer,
+        detail: c.detail,
+        team: c.team ? toSwedish(c.team) : undefined,
+        commentary,
       };
       await postSlack(this.env, buildGoalMessage(view, standings));
     }
@@ -141,6 +151,40 @@ export class GoalWatcher extends DurableObject<Env> {
     await this.ctx.storage.put("ranking", newRanking);
 
     return changes.length;
+  }
+
+  private contextFor(
+    c: Change,
+    names: { home: string; away: string },
+    preds: Preds,
+    leader: string | undefined,
+    movers: string,
+  ): CommentaryContext {
+    const tippers: TipperView[] = [];
+    const byPlayer = preds.get(c.key);
+    if (byPlayer) {
+      for (const [player, pred] of byPlayer) {
+        const pts = gradeMatch(pred, c.match.score);
+        const outcome = pts === 5 ? "exakt" : pts > 0 ? "rätt tecken" : "fel";
+        tippers.push({ player, pred: `${pred.home}-${pred.away}`, outcome });
+      }
+    }
+    const f = fixtures[c.key];
+    return {
+      kind: c.kind,
+      home: names.home,
+      away: names.away,
+      score: c.match.score,
+      minute: c.match.elapsed,
+      round: f ? `Grupp ${f.group}` : c.match.round,
+      scorer: c.scorer,
+      assist: c.assist,
+      detail: c.detail,
+      team: c.team ? toSwedish(c.team) : undefined,
+      tippers,
+      leader,
+      movers,
+    };
   }
 
   private async loadResults(): Promise<Record<string, MatchResult>> {

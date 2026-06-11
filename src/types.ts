@@ -11,6 +11,19 @@ export interface Env {
   MATCH_WINDOW_MINUTES: string; // hur länge efter avspark en match anses pågå
   KICKOFF_LEAD_SECONDS: string; // hur långt före avspark loopen vaknar
   IDLE_MAX_SLEEP_SECONDS: string; // max sovtid mellan matcher (schemakoll, inget API-anrop)
+  GEMINI_MODEL: string; // primär referat-modell, t.ex. "gemini-3.5-flash"
+  GEMINI_FALLBACK_MODEL?: string; // används vid rate limit, t.ex. "gemini-2.0-flash"
+  GOOGLE_GENERATIVE_AI_API_KEY?: string; // saknas => referat hoppas över (vanligt meddelande)
+}
+
+/** En matchhändelse från API-Football (mål, kort, byte …). */
+export interface MatchEvent {
+  type: string; // "Goal", "Card", "subst", "Var"
+  detail: string; // "Normal Goal", "Penalty", "Own Goal", "Yellow Card" …
+  team: string;
+  player: string;
+  assist?: string;
+  elapsed: number | null;
 }
 
 export interface Score {
@@ -29,6 +42,7 @@ export interface LiveMatch {
   score: Score;
   status: string; // kort statuskod: NS, 1H, HT, 2H, ET, P, FT, AET, PEN, PST...
   elapsed: number | null;
+  events?: MatchEvent[];
 }
 
 /** Lagrat resultat per match i Durable Object-storage. */
