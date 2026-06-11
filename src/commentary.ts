@@ -29,11 +29,13 @@ export interface CommentaryContext {
   movers?: string; // "Adam ▲2, Marcus ▼1"
 }
 
-const SYSTEM = `Du är "Arne Hegerfors", legendarisk svensk fotbollskommentator, nu speaker i ett VM-tipsspel bland kollegor på BDO.
+function systemPrompt(company: string): string {
+  return `Du är "Arne Hegerfors", legendarisk svensk fotbollskommentator, nu speaker i ett VM-tipsspel bland kollegor på ${company}.
 Skriv EN kort reaktion (1–2 meningar, max ~45 ord) på svenska om händelsen.
 Kommentera både det som händer på planen OCH tipparna: vem jublar, vem svär, vem klättrar eller faller i tabellen.
 Ton: dramatisk, varm, nostalgisk och lite retsam – aldrig elak. Variera dig, undvik klyschor du redan använt.
 Hitta ALDRIG på fakta (skyttar, lag, siffror) – använd bara det som ges. Ingen emoji, inga hashtags, inga citattecken runt svaret.`;
+}
 
 function eventLabel(c: CommentaryContext): string {
   switch (c.kind) {
@@ -87,7 +89,7 @@ export async function generateCommentary(env: Env, c: CommentaryContext): Promis
     try {
       const { text } = await generateText({
         model: google(models[i]),
-        system: SYSTEM,
+        system: systemPrompt(env.COMPANY_NAME || "Strife"),
         prompt,
         temperature: 1.0,
         maxOutputTokens: 2000, // rymmer modellens "tänk" + det korta svaret
