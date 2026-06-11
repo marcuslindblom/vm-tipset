@@ -1,33 +1,36 @@
-// Ren ändringsdetektering – ingen I/O, delas av Durable Object och simulatorn.
-// Tar ett live-snapshot, jämför mot lagrade resultat, returnerar nya resultat + förändringar.
+// Ren ändrings- och händelsedetektering – ingen I/O, delas av Durable Object och simulatorn.
 
-import type { LiveMatch, MatchResult, Score } from "./types";
+import type { LiveMatch, MatchEvent, MatchResult, Score } from "./types";
 import { isFinal } from "./types";
+
+export type ChangeKind =
+  | "goal"
+  | "disallowed" // VAR-underkänt (ställningen ned)
+  | "halftime"
+  | "fulltime"
+  | "redcard"
+  | "penalty_missed";
 
 export interface Change {
   key: string;
   match: LiveMatch;
   prev: Score;
-  disallowed: boolean; // ställningen gick ned (VAR-underkänt mål)
-  finished: boolean;
+  kind: ChangeKind;
+  scorer?: string; // målskytt eller utvisad/missande spelare
+  assist?: string; // assist (för mål)
+  detail?: string; // "Penalty", "Own Goal", "Second Yellow card" …
+  team?: string; // lag för kort/straff
 }
 
 export interface DiffResult {
   results: Record<string, MatchResult>;
   liveKeys: string[];
   changes: Change[];
-  goneKeys: string[]; // matcher som fallit ur live-listan och behöver finaliseras
+  goneKeys: string[];
 }
 
 function toResult(m: LiveMatch, final: boolean): MatchResult {
-  return {
-    fixtureId: m.fixtureId,
-    home: m.home.name,
-    away: m.away.name,
-    score: m.score,
-    status: m.status,
-    final,
-  };
+  return { fixtureId: m.fixtureId, home: m.home.name, away: m.away.name, score: m.score, status: m.status, final };
 }
 
 export function resultToLive(r: MatchResult): LiveMatch {
@@ -44,11 +47,19 @@ export function resultToLive(r: MatchResult): LiveMatch {
   };
 }
 
+/** Senaste målskytt för en sida (utifrån events), för en snyggare notis. */
+function goalScorer(m: LiveMatch, side: "home" | "away"): { player?: string; detail?: string; assist?: string } {
+  const team = side === "home" ? m.home.name : m.away.name;
+  const goals = (m.events ?? [])
+    .filter((e) => e.type === "Goal" && e.team === team)
+    .sort((a, b) => (b.elapsed ?? 0) - (a.elapsed ?? 0));
+  const g = goals[0];
+  return g ? { player: g.player || undefined, detail: g.detail || undefined, assist: g.assist } : {};
+}
+
 /**
- * Applicera ett live-snapshot.
- * – Första gången en match ses sparas ställningen tyst (vi annonserar inte mål som
- *   redan hänt innan vi började titta).
- * – Vid varje måländring (upp ELLER ned) skapas en Change.
+ * Applicera ett live-snapshot: upptäck mål (upp/ned) och halvtid.
+ * Första gången en match ses sparas ställningen tyst.
  */
 export function applyLiveSnapshot(
   prevResults: Record<string, MatchResult>,
@@ -72,9 +83,18 @@ export function applyLiveSnapshot(
     if (goal) {
       const newTotal = m.score.home + m.score.away;
       const oldTotal = prev.score.home + prev.score.away;
-      changes.push({ key, match: m, prev: prev.score, disallowed: newTotal < oldTotal, finished: false });
+      if (newTotal < oldTotal) {
+        changes.push({ key, match: m, prev: prev.score, kind: "disallowed" });
+      } else {
+        const side = m.score.home > prev.score.home ? "home" : "away";
+        const { player, detail, assist } = goalScorer(m, side);
+        changes.push({ key, match: m, prev: prev.score, kind: "goal", scorer: player, detail, assist });
+      }
       results[key] = toResult(m, false);
     } else if (prev.status !== m.status) {
+      if (m.status === "HT" && prev.status !== "HT") {
+        changes.push({ key, match: m, prev: prev.score, kind: "halftime" });
+      }
       results[key] = toResult(m, false);
     }
   }
@@ -90,11 +110,7 @@ export function applyLiveSnapshot(
   return { results, liveKeys, changes, goneKeys };
 }
 
-/**
- * Finalisera matcher som fallit ur live-listan.
- * `fetched` = ev. hämtad slutstatus per nyckel (null om vi inte kunde hämta – då
- * låses senast kända ställning som slutresultat).
- */
+/** Finalisera matcher som fallit ur live-listan. */
 export function finalizeGone(
   results: Record<string, MatchResult>,
   goneKeys: string[],
@@ -107,13 +123,52 @@ export function finalizeGone(
     const fin = fetched.get(key) ?? null;
     if (fin) {
       results[key] = toResult(fin, isFinal(fin.status));
-      if (isFinal(fin.status)) {
-        changes.push({ key, match: fin, prev: prev.score, disallowed: false, finished: true });
-      }
+      if (isFinal(fin.status)) changes.push({ key, match: fin, prev: prev.score, kind: "fulltime" });
     } else {
       results[key] = { ...prev, final: true };
-      changes.push({ key, match: resultToLive(prev), prev: prev.score, disallowed: false, finished: true });
+      changes.push({ key, match: resultToLive(prev), prev: prev.score, kind: "fulltime" });
     }
   }
   return changes;
+}
+
+// ── Händelse-diff (röda kort, missade straffar …) ─────────────────────────────
+// Mål hanteras via målställningen ovan; här fångar vi övriga dramatiska händelser.
+
+export function eventSignature(key: string, e: MatchEvent): string {
+  return `${key}|${e.elapsed ?? "?"}|${e.type}|${e.detail}|${e.team}|${e.player}`;
+}
+
+function notableKind(e: MatchEvent): ChangeKind | null {
+  if (e.type === "Card" && /red|second yellow/i.test(e.detail)) return "redcard";
+  if (e.type === "Goal" && /missed penalty/i.test(e.detail)) return "penalty_missed";
+  return null;
+}
+
+/**
+ * Hitta nya, anmärkningsvärda händelser sedan förra pollningen.
+ * `seen` är signaturer vi redan reagerat på; returnerar nya changes + uppdaterad mängd.
+ */
+export function diffEvents(
+  seen: Set<string>,
+  live: LiveMatch[],
+  keyOf: (m: LiveMatch) => string,
+  baselineKeys: Set<string>, // matcher som ses för första gången => seeda tyst
+): { changes: Change[]; seen: Set<string> } {
+  const changes: Change[] = [];
+  const next = new Set(seen);
+  for (const m of live) {
+    const key = keyOf(m);
+    const isBaseline = baselineKeys.has(key);
+    for (const e of m.events ?? []) {
+      const sig = eventSignature(key, e);
+      if (next.has(sig)) continue;
+      next.add(sig);
+      if (isBaseline) continue; // förstagångssikt: registrera men annonsera inte gammalt
+      const kind = notableKind(e);
+      if (!kind) continue;
+      changes.push({ key, match: m, prev: m.score, kind, scorer: e.player || undefined, detail: e.detail, team: e.team });
+    }
+  }
+  return { changes, seen: next };
 }
