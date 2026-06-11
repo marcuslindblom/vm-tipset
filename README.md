@@ -16,22 +16,25 @@ Cron (var minut, heartbeat)
           5. boka nästa pollning (POLL_SECONDS) / sovtid (nästa avspark)
 ```
 
-## Poängsystem
+## Poängsystem (enligt VM-TIPSET 2026-PDF:en)
 
-**Gruppspel** (rättas live vid varje mål):
+**Gruppmatch** (rättas live vid varje mål):
 
 | | Poäng |
 |---|---|
-| Exakt resultat | **5** |
-| Rätt målskillnad | **3** |
-| Rätt utfall (1X2) | **2** |
-| Fel | 0 |
+| Rätt tecken (1X2) | **2** |
+| Rätt resultat | **+2** (→ exakt = 4) |
+| Fel tecken | 0 |
 
-**Slutspel + bonus** (avgörs vid matchslut/turneringsslut, inte per mål): poäng per korrekt lag som
-når en rond, samt VM-vinnare, skyttekung (+antal mål) och totalt antal mål.
+**Grupp-placering** (vid gruppspelets slut): rätt **1:a** i grupp 2 p, rätt **2:a** 1 p.
+Spelarens förutsagda tabell härleds ur deras tippade resultat (`predictedGroupTable`).
 
-> ⚠️ Slutspels- och bonusvikterna i `src/scoring.ts` (`KNOCKOUT_WEIGHTS`, `BONUS_WEIGHTS`) är
-> **defaults** – Excel-arket anger inte poängvärdena. Bekräfta dem mot gruppens regler innan slutspelet.
+**Slutspel** (lag som når ronden): sextondel 2, åttondel 2, kvarts 2, semi 4, final 6 p/lag.
+**Bonus:** rätt världsmästare 10 p, rätt skyttekung 8 p, rätt antal mål för skyttekungen 5 p
+(**oberoende** av rätt skyttekung). **Totalt antal mål** ger inga poäng – det är utslagsfråga vid lika.
+
+> Slutspel, grupp-placering och bonus avgörs vid milstolpar (gruppslut / turneringsslut), inte per mål,
+> och kopplas in i totalen när faktiska resultat finns via API:t (standings/topscorers).
 
 ## Snabbstart (utan kostnad, mot historisk data)
 

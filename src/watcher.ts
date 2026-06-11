@@ -6,7 +6,7 @@ import { DurableObject } from "cloudflare:workers";
 import type { Env, LiveMatch, MatchResult, Score } from "./types";
 import { ApiFootball } from "./apifootball";
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "./engine";
-import { computeStandings, gradeMatch, type StandingRow } from "./scoring";
+import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scoring";
 import { players, predictionsByMatch, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
 import { toSwedish } from "./teams";
@@ -164,8 +164,11 @@ export class GoalWatcher extends DurableObject<Env> {
     const byPlayer = preds.get(c.key);
     if (byPlayer) {
       for (const [player, pred] of byPlayer) {
-        const pts = gradeMatch(pred, c.match.score);
-        const outcome = pts === 5 ? "exakt" : pts > 0 ? "rätt tecken" : "fel";
+        const outcome = isExact(pred, c.match.score)
+          ? "exakt"
+          : gradeMatch(pred, c.match.score) > 0
+            ? "rätt tecken"
+            : "fel";
         tippers.push({ player, pred: `${pred.home}-${pred.away}`, outcome });
       }
     }

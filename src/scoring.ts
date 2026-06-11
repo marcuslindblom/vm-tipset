@@ -1,8 +1,5 @@
 // Rättningsmotorn – rena funktioner, helt utan I/O så de är enkla att enhetstesta.
-//
-// Gruppspel: tippat resultat per match rättas live med stegen 5 / 3 / 2.
-// Slutspel + bonus: poäng per korrekt lag som når en rond, samt VM-vinnare/skyttekung/
-// totalt antal mål. Slutspelet avgörs vid matchslut, inte per mål.
+// Poängsystem enligt VM-TIPSET 2026-PDF:en.
 
 import type { Score } from "./types";
 
@@ -11,20 +8,22 @@ export interface Prediction {
   away: number;
 }
 
-// ── Gruppspel: poäng för en enskild match ────────────────────────────────────
-//   5 = exakt resultat
-//   3 = rätt målskillnad (inkluderar oavgjort med annan siffra, t.ex. 1-1 vs 2-2)
-//   2 = rätt utfall (1X2) men fel målskillnad
-//   0 = fel
-export const MATCH_POINTS = { exact: 5, goalDiff: 3, outcome: 2 } as const;
+// ── Gruppmatch (rättas live) ──────────────────────────────────────────────────
+//   Rätt tecken (1X2):  2 p
+//   Rätt resultat:     +2 p  (oberoende rad → exakt resultat = 4 p totalt)
+//   Fel tecken:         0 p
+//   (Ingen målskillnads-nivå – PDF:en har den inte.)
+export const MATCH_POINTS = { sign: 2, result: 2, exact: 4 } as const;
+
+export function isExact(pred: Prediction, actual: Score): boolean {
+  return pred.home === actual.home && pred.away === actual.away;
+}
 
 export function gradeMatch(pred: Prediction, actual: Score): number {
-  if (pred.home === actual.home && pred.away === actual.away) return MATCH_POINTS.exact;
-  if (pred.home - pred.away === actual.home - actual.away) return MATCH_POINTS.goalDiff;
-  if (Math.sign(pred.home - pred.away) === Math.sign(actual.home - actual.away)) {
-    return MATCH_POINTS.outcome;
-  }
-  return 0;
+  let pts = 0;
+  if (Math.sign(pred.home - pred.away) === Math.sign(actual.home - actual.away)) pts += MATCH_POINTS.sign;
+  if (isExact(pred, actual)) pts += MATCH_POINTS.result;
+  return pts;
 }
 
 // ── Ställning ─────────────────────────────────────────────────────────────────
@@ -32,15 +31,15 @@ export function gradeMatch(pred: Prediction, actual: Score): number {
 export interface StandingRow {
   player: string;
   points: number; // totalt
-  groupPoints: number;
-  bonusPoints: number; // slutspel + bonus
-  exact: number; // antal exakta resultat (tiebreak + kul att visa)
+  groupPoints: number; // gruppmatcher
+  bonusPoints: number; // grupp-placering + slutspel + bonus
+  exact: number; // antal exakta resultat (informativt)
   rank: number;
   prevRank: number | null;
-  delta: number; // prevRank - rank  (>0 = klättrat, <0 = tappat)
+  delta: number; // prevRank - rank  (>0 = klättrat)
 }
 
-/** Gruppspelspoäng per spelare för alla matcher som har ett (live eller slutgiltigt) resultat. */
+/** Gruppmatchpoäng per spelare för alla matcher som har ett (live/slutgiltigt) resultat. */
 export function computeGroupPoints(
   predictionsByMatch: Map<string, Map<string, Prediction>>,
   results: Map<string, Score>,
@@ -50,10 +49,9 @@ export function computeGroupPoints(
     const preds = predictionsByMatch.get(key);
     if (!preds) continue;
     for (const [player, pred] of preds) {
-      const pts = gradeMatch(pred, score);
       const cur = out.get(player) ?? { points: 0, exact: 0 };
-      cur.points += pts;
-      if (pts === MATCH_POINTS.exact) cur.exact += 1;
+      cur.points += gradeMatch(pred, score);
+      if (isExact(pred, score)) cur.exact += 1;
       out.set(player, cur);
     }
   }
@@ -61,9 +59,10 @@ export function computeGroupPoints(
 }
 
 /**
- * Räknar ut hela ställningen, sorterad och rankad.
- * `extraPoints` = slutspels- + bonuspoäng (0 tills slutspelet avgörs).
- * `prevRanking` = senast postade placering per spelare, för upp/ned-pilar.
+ * Hela ställningen, sorterad och rankad.
+ * `extraPoints` = grupp-placering + slutspel + bonus (0 tills de avgörs).
+ * Lika poäng sorteras på namn live; den officiella skiljefrågan (utslagsfrågan,
+ * totalt antal mål) tillämpas på slutställningen separat.
  */
 export function computeStandings(
   players: string[],
@@ -89,19 +88,11 @@ export function computeStandings(
     };
   });
 
-  rows.sort(
-    (a, b) =>
-      b.points - a.points || b.exact - a.exact || a.player.localeCompare(b.player, "sv"),
-  );
+  rows.sort((a, b) => b.points - a.points || a.player.localeCompare(b.player, "sv"));
 
-  // Delad placering vid lika (1, 2, 2, 4 …).
   for (let i = 0; i < rows.length; i++) {
     const prev = rows[i - 1];
-    if (i > 0 && rows[i].points === prev.points && rows[i].exact === prev.exact) {
-      rows[i].rank = prev.rank;
-    } else {
-      rows[i].rank = i + 1;
-    }
+    rows[i].rank = i > 0 && rows[i].points === prev.points ? prev.rank : i + 1;
   }
   for (const r of rows) r.delta = r.prevRank == null ? 0 : r.prevRank - r.rank;
 
@@ -112,33 +103,82 @@ export function rankingMap(rows: StandingRow[]): Map<string, number> {
   return new Map(rows.map((r) => [r.player, r.rank]));
 }
 
-// ── Slutspel + bonus ──────────────────────────────────────────────────────────
-// OBS: poängvikterna nedan är DEFAULTS och bör bekräftas mot gruppens egna regler.
-// (Excel-arket anger inte poängvärdena – bara att poäng ges per lag som når en rond.)
+// ── Grupp-placering (1:a/2:a i grupp) ─────────────────────────────────────────
+export const PLACEMENT_POINTS = { first: 2, second: 1 } as const;
 
+export interface TeamStanding {
+  team: string;
+  points: number;
+  gd: number;
+  gf: number;
+}
+
+/** Spelarens förutsagda grupptabell, härledd ur deras 6 tippade resultat i gruppen. */
+export function predictedGroupTable(
+  teams: string[],
+  matches: { home: string; away: string; pred: Prediction }[],
+): TeamStanding[] {
+  const tbl = new Map<string, TeamStanding>(teams.map((t) => [t, { team: t, points: 0, gd: 0, gf: 0 }]));
+  for (const m of matches) {
+    const h = tbl.get(m.home);
+    const a = tbl.get(m.away);
+    if (!h || !a) continue;
+    h.gf += m.pred.home;
+    a.gf += m.pred.away;
+    h.gd += m.pred.home - m.pred.away;
+    a.gd += m.pred.away - m.pred.home;
+    if (m.pred.home > m.pred.away) h.points += 3;
+    else if (m.pred.home < m.pred.away) a.points += 3;
+    else {
+      h.points += 1;
+      a.points += 1;
+    }
+  }
+  return [...tbl.values()].sort(
+    (x, y) => y.points - x.points || y.gd - x.gd || y.gf - x.gf || x.team.localeCompare(y.team, "sv"),
+  );
+}
+
+/** 2 p per rätt gruppetta, 1 p per rätt grupptvåa. */
+export function scoreGroupPlacements(
+  predicted: { group: string; first: string; second: string }[],
+  actual: Map<string, { first: string; second: string }>,
+  weights = PLACEMENT_POINTS,
+): number {
+  let pts = 0;
+  for (const p of predicted) {
+    const a = actual.get(p.group);
+    if (!a) continue;
+    if (p.first === a.first) pts += weights.first;
+    if (p.second === a.second) pts += weights.second;
+  }
+  return pts;
+}
+
+// ── Slutspel + bonus (avgörs vid matchslut/turneringsslut) ────────────────────
 export type KnockoutRound = "R32" | "R16" | "QF" | "SF" | "FINAL" | "CHAMPION";
 
+// Vikter enligt PDF:en.
 export const KNOCKOUT_WEIGHTS: Record<KnockoutRound, number> = {
-  R32: 1, // sextondelsfinal
+  R32: 2, // sextondelsfinal
   R16: 2, // åttondelsfinal
-  QF: 4, // kvartsfinal
-  SF: 6, // semifinal
-  FINAL: 8, // final
-  CHAMPION: 12, // världsmästare
+  QF: 2, // kvartsfinal
+  SF: 4, // semifinal
+  FINAL: 6, // final
+  CHAMPION: 10, // världsmästare
 };
 
 export const BONUS_WEIGHTS = {
   topScorer: 8, // rätt skyttekung
-  topScorerGoals: 4, // rätt antal mål för skyttekungen
-  totalGoals: 5, // rätt totalt antal mål (utslagsfrågan)
+  topScorerGoals: 5, // rätt antal mål för skyttekungen – OBEROENDE av rätt spelare (PDF)
 };
 
 export interface KnockoutPrediction {
-  teamsByRound: Record<KnockoutRound, string[]>; // kanoniska lagnamn per rond
+  teamsByRound: Record<KnockoutRound, string[]>;
   champion: string;
   topScorer: string;
   topScorerGoals: number;
-  totalGoals: number;
+  totalGoals: number; // endast utslagsfråga – ger inga poäng
 }
 
 export interface KnockoutActual {
@@ -146,10 +186,9 @@ export interface KnockoutActual {
   champion?: string;
   topScorer?: string;
   topScorerGoals?: number;
-  totalGoals?: number;
 }
 
-/** Slutspels- + bonuspoäng för en spelare. Endast ronder som faktiskt avgjorts räknas. */
+/** Slutspels- + bonuspoäng för en spelare. Totalt antal mål ger inga poäng (utslagsfråga). */
 export function scoreKnockout(
   pred: KnockoutPrediction,
   actual: KnockoutActual,
@@ -167,14 +206,10 @@ export function scoreKnockout(
   }
 
   if (actual.champion && pred.champion === actual.champion) pts += weights.CHAMPION;
-  if (actual.topScorer && pred.topScorer === actual.topScorer) {
-    pts += bonus.topScorer;
-    if (actual.topScorerGoals != null && pred.topScorerGoals === actual.topScorerGoals) {
-      pts += bonus.topScorerGoals;
-    }
-  }
-  if (actual.totalGoals != null && pred.totalGoals === actual.totalGoals) {
-    pts += bonus.totalGoals;
+  if (actual.topScorer && pred.topScorer === actual.topScorer) pts += bonus.topScorer;
+  // Antal mål bedöms separat – rätt siffra ger poäng även med fel skyttekung.
+  if (actual.topScorerGoals != null && pred.topScorerGoals === actual.topScorerGoals) {
+    pts += bonus.topScorerGoals;
   }
 
   return pts;
