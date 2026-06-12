@@ -110,7 +110,7 @@ async function tick(active: string[]): Promise<void> {
       tippers.push({ player, pred: `${p.home}-${p.away}`, outcome });
     }
     const ctx: CommentaryContext = {
-      kind: c.kind, home: names.home, away: names.away, score: c.match.score, minute: c.match.elapsed,
+      kind: c.kind, home: names.home, away: names.away, score: c.match.score, prev: c.prev, minute: c.match.elapsed,
       round: `Grupp ${fixtures[c.key].group}`, scorer: c.scorer, assist: c.assist, detail: c.detail, team: c.team, tippers, leader, movers,
     };
     const commentary = await generateCommentary(env, ctx);

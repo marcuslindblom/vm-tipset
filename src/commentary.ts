@@ -1,10 +1,10 @@
-// AI-referat via Gemini (Vercel AI SDK). Genererar en kort, varierad reaktion i
-// "Arne Hegerfors"-röst på matchhändelser – och retar tipparna utifrån deras tips.
+// AI-referat via Gemini (Vercel AI SDK). Kort, varierad reaktion i "Arne Hegerfors"-röst
+// som retar tipparna. Fallback-kedja över modeller (egen free-tier-kvot per modell).
 // Utan API-nyckel (eller vid fel/timeout) returneras null => vanligt meddelande postas.
 
 import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import type { Env } from "./types";
+import type { Env, Score } from "./types";
 import type { ChangeKind } from "./engine";
 
 export interface TipperView {
@@ -17,7 +17,8 @@ export interface CommentaryContext {
   kind: ChangeKind;
   home: string;
   away: string;
-  score: { home: number; away: number };
+  score: Score;
+  prev?: Score; // ställning före händelsen (för "kvittering", "tar ledningen" …)
   minute: number | null;
   round: string;
   scorer?: string;
@@ -30,11 +31,16 @@ export interface CommentaryContext {
 }
 
 function systemPrompt(company: string): string {
-  return `Du är "Arne Hegerfors", legendarisk svensk fotbollskommentator, nu speaker i ett VM-tipsspel bland kollegor på ${company}.
-Skriv EN kort reaktion (1–2 meningar, max ~45 ord) på svenska om händelsen.
-Kommentera både det som händer på planen OCH tipparna: vem jublar, vem svär, vem klättrar eller faller i tabellen.
-Ton: dramatisk, varm, nostalgisk och lite retsam – aldrig elak. Variera dig, undvik klyschor du redan använt.
-Hitta ALDRIG på fakta (skyttar, lag, siffror) – använd bara det som ges. Ingen emoji, inga hashtags, inga citattecken runt svaret.`;
+  return `Du är "Arne Hegerfors" – Sveriges mest älskade fotbollsröst – som speakar ett VM-tips bland kollegor på ${company}.
+Skriv en kort, levande reaktion på svenska (1–3 meningar, max ~60 ord) på det som just hänt.
+
+RÖST: varm, dramatisk, nostalgisk, fyndig och lite skämtsamt retsam – aldrig elak. Måla med orden, ta i med starka verb och oväntade bilder, bjud på dig själv som den gamle rävige kommentatorn.
+
+VARIERA: börja ALDRIG två referat likadant. Växla fritt mellan jubelutrop, lågmäld klokskap, retoriska frågor och små sidospår. Undvik mallen "X gör mål, och Y jublar medan Z svär".
+
+FOKUS: välj det roligaste för stunden – ibland hela dramat på planen, ibland spikar du EN enda tippare som jublar eller får svettas (rabbla inte upp alla). Spela på minut, ställning och vem som klättrar eller faller.
+
+REGLER: hitta ALDRIG på fakta (skyttar, lag, siffror) – använd bara det som ges. Ingen emoji, inga hashtags, inga citattecken runt svaret.`;
 }
 
 function eventLabel(c: CommentaryContext): string {
@@ -58,17 +64,40 @@ function eventLabel(c: CommentaryContext): string {
   }
 }
 
+/** Situationskänsla så Arne har något att haka upp dramatiken på. */
+function situation(c: CommentaryContext): string {
+  const h: string[] = [];
+  const { home, away } = c.score;
+  if (c.kind === "goal") {
+    if (c.prev && c.prev.home === 0 && c.prev.away === 0) h.push("matchens första mål");
+    if (home === away) h.push("kvittering, nu jämnt");
+    else if (c.prev && c.prev.home === c.prev.away) h.push("tar ledningen");
+    else if (c.prev && c.prev.home !== c.prev.away) {
+      const wasHomeAhead = c.prev.home > c.prev.away;
+      const homeAheadNow = home > away;
+      if (wasHomeAhead !== homeAheadNow) h.push("vänder matchen");
+    }
+    if (Math.abs(home - away) >= 3) h.push("rena utklassningen");
+    if (c.minute != null && c.minute >= 85) h.push("mycket sent – kan bli avgörande");
+  }
+  if (c.kind === "halftime" && home === 0 && away === 0) h.push("mållös, seg första halvlek");
+  if (c.kind === "fulltime" && Math.abs(home - away) >= 3) h.push("rejäl utklassning");
+  return h.join("; ");
+}
+
 function buildPrompt(c: CommentaryContext): string {
+  const sit = situation(c);
   const lines = [
     `Händelse: ${eventLabel(c)}`,
     `Match: ${c.home} ${c.score.home}–${c.score.away} ${c.away}${c.minute != null ? ` (${c.minute}')` : ""}${c.round ? ` [${c.round}]` : ""}`,
+    sit ? `Läge: ${sit}` : "",
     c.scorer && (c.kind === "goal" || c.kind === "penalty_missed") ? `Spelare: ${c.scorer}` : "",
     c.assist && c.kind === "goal" ? `Assist: ${c.assist}` : "",
     c.kind === "redcard" && c.scorer ? `Utvisad: ${c.scorer} (${c.team})` : "",
     c.tippers.length
-      ? `Tippare på denna match: ${c.tippers.map((t) => `${t.player} tippade ${t.pred} (${t.outcome})`).join("; ")}`
+      ? `Tippare på denna match: ${c.tippers.map((t) => `${t.player} ${t.pred} (${t.outcome})`).join("; ")}`
       : "",
-    c.leader ? `Leder tipset just nu: ${c.leader}` : "",
+    c.leader ? `Leder tipset: ${c.leader}` : "",
     c.movers ? `Rörelse i tabellen: ${c.movers}` : "",
   ].filter(Boolean);
   return lines.join("\n");
@@ -79,9 +108,6 @@ export async function generateCommentary(env: Env, c: CommentaryContext): Promis
   const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
   const prompt = buildPrompt(c);
   const system = systemPrompt(env.COMPANY_NAME || "Strife");
-
-  // Fallback-kedja: free-tier-kvoten är PER modell (egen budget var), så när en
-  // modell rate-limitas (5/min m.m.) faller vi vidare till nästa med egen kvot.
   const chain = modelChain(env);
 
   for (let i = 0; i < chain.length; i++) {
