@@ -78,29 +78,37 @@ export async function generateCommentary(env: Env, c: CommentaryContext): Promis
   if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
   const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
   const prompt = buildPrompt(c);
+  const system = systemPrompt(env.COMPANY_NAME || "Strife");
 
-  // Primär modell (kvalitet); faller tillbaka till en annan vid t.ex. rate limit
-  // (free-tier-kvoten är per modell, så fallback-modellen har en egen budget).
-  const primary = env.GEMINI_MODEL || "gemini-3.5-flash";
-  const fallback = env.GEMINI_FALLBACK_MODEL || "gemini-2.0-flash";
-  const models = fallback && fallback !== primary ? [primary, fallback] : [primary];
+  // Fallback-kedja: free-tier-kvoten är PER modell (egen budget var), så när en
+  // modell rate-limitas (5/min m.m.) faller vi vidare till nästa med egen kvot.
+  const chain = modelChain(env);
 
-  for (let i = 0; i < models.length; i++) {
+  for (let i = 0; i < chain.length; i++) {
     try {
       const { text } = await generateText({
-        model: google(models[i]),
-        system: systemPrompt(env.COMPANY_NAME || "Strife"),
+        model: google(chain[i]),
+        system,
         prompt,
         temperature: 1.0,
         maxOutputTokens: 2000, // rymmer modellens "tänk" + det korta svaret
-        maxRetries: i === models.length - 1 ? 1 : 0, // fail fast till fallback
+        maxRetries: i === chain.length - 1 ? 1 : 0, // fail fast vidare i kedjan
         abortSignal: AbortSignal.timeout(15000),
       });
       const out = text.trim();
       if (out) return out;
     } catch (e) {
-      console.error(`kommentar-fel (${models[i]}):`, (e as Error).message);
+      console.error(`kommentar-fel (${chain[i]}):`, (e as Error).message);
     }
   }
   return null;
+}
+
+/** Modellkedjan: GEMINI_MODELS (kommaseparerad) eller default-kedja. */
+export function modelChain(env: Env): string[] {
+  const configured = env.GEMINI_MODELS?.split(",").map((s) => s.trim()).filter(Boolean);
+  const list = configured?.length
+    ? configured
+    : [env.GEMINI_MODEL || "gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  return [...new Set(list)];
 }

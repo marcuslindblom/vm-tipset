@@ -27,8 +27,9 @@
     "KICKOFF_LEAD_SECONDS": "60", // börja polla strax före avspark
     "IDLE_MAX_SLEEP_SECONDS": "3600", // schemakoll minst varje timme mellan matcher (inget API-anrop)
     "COMPANY_NAME": "Strife", // företaget tipset körs på (nämns i Arnes referat)
-    "GEMINI_MODEL": "gemini-3.5-flash", // Arnes referat-modell (kvalitet; 5 anrop/min på free)
-    "GEMINI_FALLBACK_MODEL": "gemini-2.0-flash" // används om primärmodellen rate-limitas (15/min)
+    // Fallback-kedja: egen free-tier-kvot per modell, så rate limit på en faller vidare.
+    "GEMINI_MODEL": "gemini-3.5-flash",
+    "GEMINI_MODELS": "gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-flash-lite"
   }
   // Hemlighet GOOGLE_GENERATIVE_AI_API_KEY (valfri): utan den hoppas referatet över.
   // Hemligheter (sätts med `wrangler secret put` eller .dev.vars lokalt):
