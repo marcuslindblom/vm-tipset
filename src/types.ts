@@ -13,7 +13,8 @@ export interface Env {
   IDLE_MAX_SLEEP_SECONDS: string; // max sovtid mellan matcher (schemakoll, inget API-anrop)
   COMPANY_NAME?: string; // företaget tipset körs på (Arne nämner det i referaten)
   GEMINI_MODEL: string; // primär referat-modell, t.ex. "gemini-3.5-flash"
-  GEMINI_FALLBACK_MODEL?: string; // används vid rate limit, t.ex. "gemini-2.0-flash"
+  GEMINI_MODELS?: string; // kommaseparerad fallback-kedja (egen kvot per modell)
+  GEMINI_FALLBACK_MODEL?: string; // (äldre) enskild fallback
   GOOGLE_GENERATIVE_AI_API_KEY?: string; // saknas => referat hoppas över (vanligt meddelande)
 }
 
