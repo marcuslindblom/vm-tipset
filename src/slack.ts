@@ -2,7 +2,7 @@
 // Utan SLACK_WEBHOOK_URL körs allt i dry-run (loggar payloaden i stället för att posta).
 
 import type { Env, Score } from "./types";
-import type { StandingRow } from "./scoring";
+import { MATCH_POINTS, type StandingRow } from "./scoring";
 import type { ChangeKind } from "./engine";
 
 export interface GoalView {
@@ -60,9 +60,9 @@ export function headline(g: GoalView): string {
     case "disallowed":
       return `🚫 Mål underkänt – ${scoreLine(g)}`;
     case "halftime":
-      return `⏸️ Halvtid: ${scoreLine(g)}`;
+      return `⏸️ HALVTID · ${scoreLine(g)}`;
     case "fulltime":
-      return `✅ Slutresultat: ${scoreLine(g)}`;
+      return `✅ FULL TID · ${scoreLine(g)}`;
     case "redcard": {
       const kind = /second yellow/i.test(g.detail ?? "") ? "Andra gula → rött" : "Rött kort";
       return `🟥 ${kind} – ${g.scorer ?? ""}${g.team ? ` (${g.team})` : ""}${min} · ${scoreLine(g)}`;
@@ -77,21 +77,56 @@ export interface SlackMessage {
   blocks: unknown[];
 }
 
-export function buildGoalMessage(g: GoalView, standings: StandingRow[]): SlackMessage {
+export interface MatchPointRow {
+  player: string;
+  points: number;
+}
+
+/** "Den här matchen gav:" – spelare grupperade per poäng (4/2/0). */
+export function matchPointsText(rows: MatchPointRow[]): string {
+  const byPts = new Map<number, string[]>();
+  for (const r of rows) {
+    if (!byPts.has(r.points)) byPts.set(r.points, []);
+    byPts.get(r.points)!.push(r.player);
+  }
+  return [...byPts.keys()]
+    .sort((a, b) => b - a)
+    .map((p) => {
+      const players = byPts.get(p)!.sort((a, b) => a.localeCompare(b, "sv"));
+      const head = (p > 0 ? `+${p}` : `${p}`).padStart(3);
+      const label = p === MATCH_POINTS.exact ? "  (exakt)" : p === MATCH_POINTS.sign ? "  (rätt tecken)" : "";
+      return `${head}  ${players.join(" · ")}${label}`;
+    })
+    .join("\n");
+}
+
+/**
+ * Bygger Slack-meddelandet. Under matchen (mål, halvtid, kort osv): bara rubrik +
+ * Arnes referat. Vid FULL TID: även "den här matchen gav" + totalställningen.
+ */
+export function buildGoalMessage(
+  g: GoalView,
+  opts: { standings?: StandingRow[]; matchPoints?: MatchPointRow[] } = {},
+): SlackMessage {
   const title = headline(g);
   const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: `*${title}*` } }];
 
   if (g.commentary) {
-    blocks.push({
-      type: "section",
-      text: { type: "mrkdwn", text: `> _${g.commentary}_\n> — Arne` },
-    });
+    blocks.push({ type: "section", text: { type: "mrkdwn", text: `> _${g.commentary}_\n> — Arne` } });
   }
 
-  blocks.push({
-    type: "section",
-    text: { type: "mrkdwn", text: "🏆 *Ställning*\n```\n" + standingsText(standings) + "\n```" },
-  });
+  if (g.kind === "fulltime" && opts.standings) {
+    if (opts.matchPoints?.length) {
+      blocks.push({
+        type: "section",
+        text: { type: "mrkdwn", text: "⚽ *Den här matchen gav:*\n```\n" + matchPointsText(opts.matchPoints) + "\n```" },
+      });
+    }
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: "📊 *Totalställning i VM-tipset*\n```\n" + standingsText(opts.standings) + "\n```" },
+    });
+  }
 
   return { text: title, blocks };
 }

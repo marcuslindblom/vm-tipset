@@ -10,7 +10,7 @@ import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scori
 import { players, predictionsByMatch, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
 import { toSwedish } from "./teams";
-import { buildGoalMessage, postSlack, type GoalView } from "./slack";
+import { buildGoalMessage, postSlack, type GoalView, type MatchPointRow } from "./slack";
 import { generateCommentary, type CommentaryContext, type TipperView } from "./commentary";
 
 const KICKOFFS_MS = toKickoffMs(kickoffs);
@@ -129,6 +129,7 @@ export class GoalWatcher extends DurableObject<Env> {
       .map((r) => `${r.player} ${r.delta > 0 ? "▲" + r.delta : "▼" + -r.delta}`)
       .join(", ");
 
+    let postedTable = false;
     for (const c of changes) {
       const names = displayNames(c.key, c.match);
       const commentary = await generateCommentary(this.env, this.contextFor(c, names, preds, leader, movers));
@@ -143,14 +144,34 @@ export class GoalWatcher extends DurableObject<Env> {
         team: c.team ? toSwedish(c.team) : undefined,
         commentary,
       };
-      await postSlack(this.env, buildGoalMessage(view, standings));
+      // Under matchen: bara rubrik + Arne. Vid full tid: matchpoäng + totalställning.
+      if (c.kind === "fulltime") {
+        const matchPoints = this.matchPointsFor(c.key, c.match.score, preds);
+        await postSlack(this.env, buildGoalMessage(view, { standings, matchPoints }));
+        postedTable = true;
+      } else {
+        await postSlack(this.env, buildGoalMessage(view));
+      }
     }
 
-    const newRanking: Record<string, number> = {};
-    for (const r of standings) newRanking[r.player] = r.rank;
-    await this.ctx.storage.put("ranking", newRanking);
+    // Uppdatera "senast visade" placering bara när tabellen faktiskt visats (vid FT),
+    // så pilarna vid full tid speglar rörelsen sedan förra full tid.
+    if (postedTable) {
+      const newRanking: Record<string, number> = {};
+      for (const r of standings) newRanking[r.player] = r.rank;
+      await this.ctx.storage.put("ranking", newRanking);
+    }
 
     return changes.length;
+  }
+
+  /** Poäng varje spelare fick i en enskild match (för full tid-kortet). */
+  private matchPointsFor(key: string, score: Score, preds: Preds): MatchPointRow[] {
+    const rows: MatchPointRow[] = [];
+    for (const [player, pred] of preds.get(key) ?? []) {
+      rows.push({ player, points: gradeMatch(pred, score) });
+    }
+    return rows.sort((a, b) => b.points - a.points);
   }
 
   private contextFor(
