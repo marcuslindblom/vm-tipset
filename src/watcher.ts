@@ -146,15 +146,58 @@ export class GoalWatcher extends DurableObject<Env> {
     const myMatches = await this.myMatchesSummary(player, preds, results);
     const standingsSummary = standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n");
 
-    const arne = await answerAsArne(this.env, { player, question, myMatches, standings: standingsSummary });
+    const allTips = await this.allTipsSummary(preds, results);
+
+    const arne = await answerAsArne(this.env, { player, question, myMatches, allTips, standings: standingsSummary });
     if (arne) return arne;
 
     // Fallback om Gemini är nere: leverera datan rakt.
     const me = standings.find((r) => r.player === player);
     return (
-      `Dina tips:\n${myMatches}\n\nTotalställning:\n${standingsSummary}` +
+      `Dina tips:\n${myMatches}\n\nAllas tips (pågående/nästa):\n${allTips}\n\nTotalställning:\n${standingsSummary}` +
       (me ? `\n\nDu (${player}) ligger ${me.rank}:a med ${me.points} p.` : "")
     );
+  }
+
+  /** Allas tippade resultat för pågående + nästa match. */
+  private async allTipsSummary(preds: Preds, results: Record<string, MatchResult>): Promise<string> {
+    const liveKeys = (await this.ctx.storage.get<string[]>("liveKeys")) ?? [];
+    const rows: { key: string; label: string }[] = [];
+    for (const key of liveKeys) {
+      const f = fixtures[key];
+      if (!f) continue;
+      const cur = results[key]?.score;
+      rows.push({ key, label: `${f.homeSv}–${f.awaySv} (PÅGÅR${cur ? `, just nu ${cur.home}-${cur.away}` : ""})` });
+    }
+    const nowMs = Date.now();
+    let nextKey: string | null = null;
+    let nextT = Infinity;
+    for (const [key, f] of Object.entries(fixtures)) {
+      const t = f.kickoff ? Date.parse(f.kickoff) : NaN;
+      if (!Number.isNaN(t) && t > nowMs && t < nextT && preds.has(key)) {
+        nextKey = key;
+        nextT = t;
+      }
+    }
+    if (nextKey && !liveKeys.includes(nextKey)) {
+      const f = fixtures[nextKey];
+      rows.push({ key: nextKey, label: `${f.homeSv}–${f.awaySv} (NÄSTA)` });
+    }
+    if (!rows.length) return "Inga pågående eller kommande matcher just nu.";
+
+    return rows
+      .map(({ key, label }) => {
+        const byPlayer = preds.get(key);
+        const tips = players
+          .map((pl) => {
+            const p = byPlayer?.get(pl);
+            return p ? `${pl} ${p.home}-${p.away}` : null;
+          })
+          .filter(Boolean)
+          .join(", ");
+        return `${label}: ${tips}`;
+      })
+      .join("\n");
   }
 
   private async myMatchesSummary(
@@ -252,6 +295,7 @@ export class GoalWatcher extends DurableObject<Env> {
         detail: c.detail,
         team: c.team ? toSwedish(c.team) : undefined,
         context: f ? `Grupp ${f.group} · VM 2026` : c.match.round ? `${c.match.round} · VM 2026` : "VM 2026",
+        allTips: c.kind === "kickoff" ? tipsLine(c.key, preds) : undefined,
         commentary,
       };
       // Under matchen: bara rubrik + Arne. Vid full tid: matchpoäng + totalställning.
@@ -337,6 +381,18 @@ function scoreMap(results: Record<string, MatchResult>): Map<string, Score> {
 }
 function rankingMap(obj: Record<string, number>): Map<string, number> {
   return new Map(Object.entries(obj));
+}
+
+/** Allas tippade resultat för en match: "Adam 2-0 · Anders 1-0 · …". */
+function tipsLine(key: string, preds: Preds): string {
+  const byPlayer = preds.get(key);
+  return players
+    .map((pl) => {
+      const p = byPlayer?.get(pl);
+      return p ? `${pl} ${p.home}-${p.away}` : null;
+    })
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** Matcha ett inskrivet namn mot en spelare (skiftlägesokänsligt, prefix tillåtet). */

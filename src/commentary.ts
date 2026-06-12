@@ -138,8 +138,9 @@ export async function generateCommentary(env: Env, c: CommentaryContext): Promis
 export interface AssistInput {
   player: string;
   question: string;
-  myMatches: string; // förformaterad sammanfattning av spelarens tips
-  standings: string; // förformaterad totalställning
+  myMatches: string; // spelarens egna tips (pågående/nästa)
+  allTips: string; // allas tips (pågående/nästa)
+  standings: string; // totalställning
 }
 
 /** Arne svarar på en spelares fråga (privat) med VÅR data – hittar aldrig på siffror. */
@@ -147,8 +148,10 @@ export async function answerAsArne(env: Env, a: AssistInput): Promise<string | n
   if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
   const company = env.COMPANY_NAME || "Strife";
   const system = `Du är "Arne Hegerfors", speaker i VM-tipset på ${company}. ${a.player} frågar dig något privat.
-Svara kort och varmt (1–3 meningar) på svenska i din röst. ANVÄND ENDAST datan nedan – hitta ALDRIG på tips, lag eller siffror. Kan frågan inte besvaras med datan, säg det vänligt och tipsa om vad man kan fråga (sina tips eller ställningen). Ingen emoji, inga citattecken runt svaret.`;
-  const prompt = `Fråga från ${a.player}: "${a.question}"\n\n— ${a.player}s tips —\n${a.myMatches}\n\n— Totalställning —\n${a.standings}`;
+Svara på svenska i din röst, oftast kort (1–3 meningar). ANVÄND ENDAST datan nedan – hitta ALDRIG på tips, lag eller siffror.
+Om man frågar hur ALLA (eller de andra) tippat: lista varje spelares tips tydligt (kort rad-/punktlista) med en liten Arne-kommentar.
+Kan frågan inte besvaras med datan, säg det vänligt och tipsa om vad man kan fråga (sina tips, allas tips, eller ställningen). Ingen emoji, inga citattecken runt svaret.`;
+  const prompt = `Fråga från ${a.player}: "${a.question}"\n\n— ${a.player}s egna tips —\n${a.myMatches}\n\n— Allas tips (pågående/nästa match) —\n${a.allTips}\n\n— Totalställning —\n${a.standings}`;
   return runChain(env, system, prompt);
 }
 

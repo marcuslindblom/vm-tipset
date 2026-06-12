@@ -114,7 +114,17 @@ async function tick(active: string[]): Promise<void> {
       round: `Grupp ${fixtures[c.key].group}`, scorer: c.scorer, assist: c.assist, detail: c.detail, team: c.team, tippers, leader, movers,
     };
     const commentary = await generateCommentary(env, ctx);
-    const view: GoalView = { kind: c.kind, homeName: names.home, awayName: names.away, score: c.match.score, minute: c.match.elapsed, scorer: c.scorer, detail: c.detail, team: c.team, context: `Grupp ${fixtures[c.key].group} · VM 2026`, commentary };
+    const allTips =
+      c.kind === "kickoff"
+        ? allPlayers
+            .map((pl) => {
+              const p = preds.get(c.key)?.get(pl);
+              return p ? `${pl} ${p.home}-${p.away}` : null;
+            })
+            .filter(Boolean)
+            .join(" · ")
+        : undefined;
+    const view: GoalView = { kind: c.kind, homeName: names.home, awayName: names.away, score: c.match.score, minute: c.match.elapsed, scorer: c.scorer, detail: c.detail, team: c.team, context: `Grupp ${fixtures[c.key].group} · VM 2026`, allTips, commentary };
     if (c.kind === "fulltime") {
       const mp: MatchPointRow[] = [...(preds.get(c.key) ?? [])]
         .map(([player, p]) => ({ player, points: gradeMatch(p, c.match.score) }))
@@ -136,6 +146,10 @@ function render(
   if (view.context) console.log("│ " + view.context);
   console.log("│ " + headline(view));
   if (commentary) for (const l of wrap(`🎙️ ${commentary} — Arne`, 60)) console.log("│ " + l);
+  if (view.allTips) {
+    console.log("│ 🎲 Allas tips:");
+    for (const l of wrap(view.allTips, 60)) console.log("│   " + l);
+  }
   if (ft) {
     console.log("│ ⚽ Den här matchen gav:");
     for (const l of matchPointsText(ft.matchPoints).split("\n")) console.log("│   " + l);
