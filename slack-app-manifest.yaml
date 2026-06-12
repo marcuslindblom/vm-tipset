@@ -10,7 +10,7 @@
 #      (eller i .dev.vars lokalt). Utan URL körs tjänsten i dry-run och loggar bara.
 
 display_information:
-  name: VM-tipset
+  name: Arne Hegerfors
   description: Räknar ut exakt hur fel du hade. I realtid, vid varje mål, helt utan barmhärtighet.
   background_color: "#1a7f37"
   long_description: >-

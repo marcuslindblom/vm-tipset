@@ -15,6 +15,7 @@ export interface GoalView {
   detail?: string; // "Penalty", "Own Goal", "Second Yellow card" …
   team?: string; // lag för kort/straff
   context?: string; // t.ex. "Grupp F · VM 2026" (visas som liten etikett)
+  allTips?: string; // allas tips för matchen (visas vid avspark)
   commentary?: string | null; // Arnes AI-referat (kan saknas)
 }
 
@@ -121,6 +122,10 @@ export function buildGoalMessage(
 
   if (g.commentary) {
     blocks.push({ type: "section", text: { type: "mrkdwn", text: `> _${g.commentary}_\n> — Arne` } });
+  }
+
+  if (g.kind === "kickoff" && g.allTips) {
+    blocks.push({ type: "section", text: { type: "mrkdwn", text: `🎲 *Allas tips:*\n${g.allTips}` } });
   }
 
   if (g.kind === "fulltime" && opts.standings) {
