@@ -15,7 +15,7 @@ import {
 } from "../src/predictions.ts";
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "../src/engine.ts";
 import { computeStandings, gradeMatch, isExact, type Prediction } from "../src/scoring.ts";
-import { headline, standingsText, type GoalView } from "../src/slack.ts";
+import { headline, standingsText, matchPointsText, type GoalView, type MatchPointRow } from "../src/slack.ts";
 import { generateCommentary, type CommentaryContext, type TipperView } from "../src/commentary.ts";
 import type { Env, LiveMatch, MatchEvent, MatchResult, Score } from "../src/types.ts";
 
@@ -115,17 +115,32 @@ async function tick(active: string[]): Promise<void> {
     };
     const commentary = await generateCommentary(env, ctx);
     const view: GoalView = { kind: c.kind, homeName: names.home, awayName: names.away, score: c.match.score, minute: c.match.elapsed, scorer: c.scorer, detail: c.detail, team: c.team, commentary };
-    render(view, commentary, standings);
+    if (c.kind === "fulltime") {
+      const mp: MatchPointRow[] = [...(preds.get(c.key) ?? [])]
+        .map(([player, p]) => ({ player, points: gradeMatch(p, c.match.score) }))
+        .sort((a, b) => b.points - a.points);
+      render(view, commentary, { matchPoints: mp, standings });
+    } else {
+      render(view, commentary, null);
+    }
   }
-  ranking = Object.fromEntries(standings.map((r) => [r.player, r.rank]));
+  if (changes.some((c) => c.kind === "fulltime")) ranking = Object.fromEntries(standings.map((r) => [r.player, r.rank]));
 }
 
-function render(view: GoalView, commentary: string | null, standings: any[]): void {
+function render(
+  view: GoalView,
+  commentary: string | null,
+  ft: { matchPoints: MatchPointRow[]; standings: any[] } | null,
+): void {
   console.log("\n┌─ Slack → #vm-tipset " + "─".repeat(44));
   console.log("│ " + headline(view));
   if (commentary) for (const l of wrap(`🎙️ ${commentary} — Arne`, 60)) console.log("│ " + l);
-  console.log("│ 🏆 Ställning");
-  for (const l of standingsText(standings).split("\n")) console.log("│   " + l);
+  if (ft) {
+    console.log("│ ⚽ Den här matchen gav:");
+    for (const l of matchPointsText(ft.matchPoints).split("\n")) console.log("│   " + l);
+    console.log("│ 📊 Totalställning i VM-tipset");
+    for (const l of standingsText(ft.standings).split("\n")) console.log("│   " + l);
+  }
   console.log("└" + "─".repeat(65));
 }
 function wrap(s: string, w: number): string[] {
