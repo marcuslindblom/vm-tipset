@@ -133,6 +133,7 @@ export class GoalWatcher extends DurableObject<Env> {
     for (const c of changes) {
       const names = displayNames(c.key, c.match);
       const commentary = await generateCommentary(this.env, this.contextFor(c, names, preds, leader, movers));
+      const f = fixtures[c.key];
       const view: GoalView = {
         kind: c.kind,
         homeName: names.home,
@@ -142,6 +143,7 @@ export class GoalWatcher extends DurableObject<Env> {
         scorer: c.scorer,
         detail: c.detail,
         team: c.team ? toSwedish(c.team) : undefined,
+        context: f ? `Grupp ${f.group} · VM 2026` : c.match.round ? `${c.match.round} · VM 2026` : "VM 2026",
         commentary,
       };
       // Under matchen: bara rubrik + Arne. Vid full tid: matchpoäng + totalställning.

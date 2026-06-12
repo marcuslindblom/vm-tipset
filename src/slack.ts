@@ -14,6 +14,7 @@ export interface GoalView {
   scorer?: string;
   detail?: string; // "Penalty", "Own Goal", "Second Yellow card" …
   team?: string; // lag för kort/straff
+  context?: string; // t.ex. "Grupp F · VM 2026" (visas som liten etikett)
   commentary?: string | null; // Arnes AI-referat (kan saknas)
 }
 
@@ -55,6 +56,8 @@ function goalSuffix(detail?: string): string {
 export function headline(g: GoalView): string {
   const min = g.minute != null ? ` (${g.minute}')` : "";
   switch (g.kind) {
+    case "kickoff":
+      return `⚽ AVSPARK · ${g.homeName} – ${g.awayName}`;
     case "goal":
       return `⚽ MÅL! ${scoreLine(g)}${min}${g.scorer ? ` – ${g.scorer}${goalSuffix(g.detail)}` : ""}`;
     case "disallowed":
@@ -109,7 +112,12 @@ export function buildGoalMessage(
   opts: { standings?: StandingRow[]; matchPoints?: MatchPointRow[] } = {},
 ): SlackMessage {
   const title = headline(g);
-  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: `*${title}*` } }];
+  const blocks: unknown[] = [];
+
+  // Liten etikett ovanför rubriken så man ser vilken match (viktigt vid samtidiga matcher).
+  if (g.context) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: g.context }] });
+
+  blocks.push({ type: "section", text: { type: "mrkdwn", text: `*${title}*` } });
 
   if (g.commentary) {
     blocks.push({ type: "section", text: { type: "mrkdwn", text: `> _${g.commentary}_\n> — Arne` } });
