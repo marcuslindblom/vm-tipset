@@ -33,6 +33,17 @@ test("baseline: första gången en match ses annonseras inget", () => {
   assert.equal(r.results["1"].score.home, 1);
 });
 
+test("avspark: matchen ses tidigt i 1H => kickoff-händelse", () => {
+  const r = applyLiveSnapshot({}, [], [lm(1, "A", "B", [0, 0], "1H", 1)], keyOf);
+  assert.equal(r.changes.length, 1);
+  assert.equal(r.changes[0].kind, "kickoff");
+});
+
+test("ingen avspark om matchen ses sent (start mitt i match)", () => {
+  const r = applyLiveSnapshot({}, [], [lm(1, "A", "B", [1, 1], "1H", 30)], keyOf);
+  assert.equal(r.changes.length, 0);
+});
+
 test("mål upptäcks vid ökning, med målskytt från events", () => {
   const goalEv: MatchEvent = { type: "Goal", detail: "Normal Goal", team: "A", player: "Zlatan", assist: "Forsberg", elapsed: 23 };
   const a = applyLiveSnapshot({}, [], [lm(1, "A", "B", [0, 0], "1H")], keyOf);

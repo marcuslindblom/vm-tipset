@@ -4,12 +4,16 @@ import type { LiveMatch, MatchEvent, MatchResult, Score } from "./types";
 import { isFinal } from "./types";
 
 export type ChangeKind =
+  | "kickoff"
   | "goal"
   | "disallowed" // VAR-underkänt (ställningen ned)
   | "halftime"
   | "fulltime"
   | "redcard"
   | "penalty_missed";
+
+// Avspark = matchen ses första gången tidigt i första halvlek (inte ett mid-match-uppvaknande).
+const KICKOFF_ELAPSED_MAX = 5;
 
 export interface Change {
   key: string;
@@ -76,7 +80,12 @@ export function applyLiveSnapshot(
     liveKeys.push(key);
     const prev = results[key];
     if (!prev) {
-      results[key] = toResult(m, false); // baseline, tyst
+      results[key] = toResult(m, false); // baseline
+      // Avspark bara om vi fångar matchen tidigt i 1:a halvlek (inte en match som
+      // redan rullat länge när tjänsten startar mitt i).
+      if (m.status === "1H" && (m.elapsed == null || m.elapsed <= KICKOFF_ELAPSED_MAX)) {
+        changes.push({ key, match: m, prev: m.score, kind: "kickoff" });
+      }
       continue;
     }
     const goal = prev.score.home !== m.score.home || prev.score.away !== m.score.away;

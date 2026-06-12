@@ -45,6 +45,8 @@ REGLER: hitta ALDRIG på fakta (skyttar, lag, siffror) – använd bara det som 
 
 function eventLabel(c: CommentaryContext): string {
   switch (c.kind) {
+    case "kickoff":
+      return "AVSPARK (matchen börjar)";
     case "goal":
       return c.detail && /penalty/i.test(c.detail)
         ? "MÅL på straff"
@@ -95,7 +97,9 @@ function buildPrompt(c: CommentaryContext): string {
     c.assist && c.kind === "goal" ? `Assist: ${c.assist}` : "",
     c.kind === "redcard" && c.scorer ? `Utvisad: ${c.scorer} (${c.team})` : "",
     c.tippers.length
-      ? `Tippare på denna match: ${c.tippers.map((t) => `${t.player} ${t.pred} (${t.outcome})`).join("; ")}`
+      ? c.kind === "kickoff"
+        ? `Tippat resultat: ${c.tippers.map((t) => `${t.player} ${t.pred}`).join("; ")}`
+        : `Tippare på denna match: ${c.tippers.map((t) => `${t.player} ${t.pred} (${t.outcome})`).join("; ")}`
       : "",
     c.leader ? `Leder tipset: ${c.leader}` : "",
     c.movers ? `Rörelse i tabellen: ${c.movers}` : "",
