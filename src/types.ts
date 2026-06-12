@@ -5,6 +5,8 @@ export interface Env {
   APISPORTS_KEY: string;
   APISPORTS_HOST: string;
   SLACK_WEBHOOK_URL?: string;
+  SLACK_SIGNING_SECRET?: string; // verifierar inkommande Slack-requests (@arne)
+  SLACK_BOT_TOKEN?: string; // xoxb-… för privata svar (chat.postEphemeral)
   WC_LEAGUE_ID: string;
   SEASON: string;
   POLL_SECONDS: string; // intervall mellan pollningar UNDER ett matchfönster

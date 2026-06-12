@@ -11,7 +11,8 @@ import { players, predictionsByMatch, keyOfLive, displayNames, fixtures, kickoff
 import { scheduleState, toKickoffMs } from "./schedule";
 import { toSwedish } from "./teams";
 import { buildGoalMessage, postSlack, type GoalView, type MatchPointRow } from "./slack";
-import { generateCommentary, type CommentaryContext, type TipperView } from "./commentary";
+import { generateCommentary, answerAsArne, type CommentaryContext, type TipperView } from "./commentary";
+import { postEphemeral } from "./slackapi";
 
 const KICKOFFS_MS = toKickoffMs(kickoffs);
 type Preds = ReturnType<typeof predictionsByMatch>;
@@ -79,6 +80,113 @@ export class GoalWatcher extends DurableObject<Env> {
   async reset(): Promise<{ reset: true }> {
     await this.ctx.storage.deleteAll();
     return { reset: true };
+  }
+
+  // ── @arne-assistent (privata svar) ────────────────────────────────────────
+  async handleMention(channel: string, user: string, text: string): Promise<void> {
+    const token = this.env.SLACK_BOT_TOKEN;
+    if (!token) {
+      console.error("SLACK_BOT_TOKEN saknas – kan inte svara på @arne");
+      return;
+    }
+    const usersMap = (await this.ctx.storage.get<Record<string, string>>("slackUsers")) ?? {};
+
+    // Onboarding: "jag heter/är X" => koppla Slack-användare till spelare.
+    const m = /\bjag\s+(?:heter|är|e)\s+([\p{L}-]+)/iu.exec(text);
+    if (m) {
+      const player = matchPlayer(m[1]);
+      if (player) {
+        usersMap[user] = player;
+        await this.ctx.storage.put("slackUsers", usersMap);
+        await postEphemeral(token, channel, user, `Hej ${player}! Nu känner jag igen dig. Fråga mig t.ex. "hur har jag tippat?" eller "ställningen".`);
+      } else {
+        await postEphemeral(token, channel, user, `Hmm, jag hittar ingen spelare som heter "${m[1]}". Spelare i tipset: ${players.join(", ")}.`);
+      }
+      return;
+    }
+
+    // Auto-koppla via Slack-namnet (matchar tipsnamnet, ev. annat skiftläge).
+    const player = usersMap[user] ?? (await this.resolvePlayer(token, user, usersMap));
+    if (!player) {
+      await postEphemeral(token, channel, user, `Jag känner inte igen ditt namn automatiskt. Skriv "@arne jag heter <ditt namn>". Spelare: ${players.join(", ")}.`);
+      return;
+    }
+
+    await postEphemeral(token, channel, user, await this.answer(player, text));
+  }
+
+  /** Slå upp Slack-användarens namn och matcha mot en spelare (skiftlägesokänsligt). */
+  private async resolvePlayer(token: string, user: string, usersMap: Record<string, string>): Promise<string | null> {
+    try {
+      const res = await fetch(`https://slack.com/api/users.info?user=${user}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const j: any = await res.json();
+      if (!j.ok) return null;
+      const p = j.user?.profile ?? {};
+      const candidates = [p.display_name, j.user?.name, p.real_name, String(p.real_name ?? "").split(" ")[0]];
+      for (const c of candidates) {
+        const match = c ? matchPlayer(c) : null;
+        if (match) {
+          usersMap[user] = match;
+          await this.ctx.storage.put("slackUsers", usersMap);
+          return match;
+        }
+      }
+    } catch (e) {
+      console.error("users.info fel:", (e as Error).message);
+    }
+    return null;
+  }
+
+  private async answer(player: string, question: string): Promise<string> {
+    const results = await this.loadResults();
+    const preds = predictionsByMatch();
+    const standings = computeStandings(players, preds, scoreMap(results));
+    const myMatches = await this.myMatchesSummary(player, preds, results);
+    const standingsSummary = standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n");
+
+    const arne = await answerAsArne(this.env, { player, question, myMatches, standings: standingsSummary });
+    if (arne) return arne;
+
+    // Fallback om Gemini är nere: leverera datan rakt.
+    const me = standings.find((r) => r.player === player);
+    return (
+      `Dina tips:\n${myMatches}\n\nTotalställning:\n${standingsSummary}` +
+      (me ? `\n\nDu (${player}) ligger ${me.rank}:a med ${me.points} p.` : "")
+    );
+  }
+
+  private async myMatchesSummary(
+    player: string,
+    preds: Preds,
+    results: Record<string, MatchResult>,
+  ): Promise<string> {
+    const liveKeys = (await this.ctx.storage.get<string[]>("liveKeys")) ?? [];
+    const lines: string[] = [];
+    for (const key of liveKeys) {
+      const p = preds.get(key)?.get(player);
+      const f = fixtures[key];
+      if (p && f) {
+        const cur = results[key]?.score;
+        lines.push(
+          `PÅGÅR: ${f.homeSv}–${f.awaySv}, ditt tips ${p.home}-${p.away}${cur ? `, just nu ${cur.home}-${cur.away}` : ""}`,
+        );
+      }
+    }
+    const nowMs = Date.now();
+    let next: { f: (typeof fixtures)[string]; ph: number; pa: number; t: number } | null = null;
+    for (const [key, f] of Object.entries(fixtures)) {
+      const p = preds.get(key)?.get(player);
+      const t = f.kickoff ? Date.parse(f.kickoff) : NaN;
+      if (p && !Number.isNaN(t) && t > nowMs && (!next || t < next.t)) next = { f, ph: p.home, pa: p.away, t };
+    }
+    if (next) {
+      const when = new Date(next.t).toISOString().slice(0, 16).replace("T", " ");
+      lines.push(`NÄSTA: ${next.f.homeSv}–${next.f.awaySv}, ditt tips ${next.ph}-${next.pa} (avspark ${when} UTC)`);
+    }
+    if (!lines.length) lines.push("Inga pågående eller kommande matcher just nu.");
+    return lines.join("\n");
   }
 
   // ── Kärna ─────────────────────────────────────────────────────────────────
@@ -229,4 +337,12 @@ function scoreMap(results: Record<string, MatchResult>): Map<string, Score> {
 }
 function rankingMap(obj: Record<string, number>): Map<string, number> {
   return new Map(Object.entries(obj));
+}
+
+/** Matcha ett inskrivet namn mot en spelare (skiftlägesokänsligt, prefix tillåtet). */
+function matchPlayer(typed: string): string | null {
+  const t = typed.trim().toLowerCase();
+  return (
+    players.find((p) => p.toLowerCase() === t) ?? players.find((p) => p.toLowerCase().startsWith(t)) ?? null
+  );
 }

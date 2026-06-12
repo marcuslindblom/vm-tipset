@@ -32,10 +32,17 @@ features:
 oauth_config:
   scopes:
     bot:
-      - incoming-webhook # genererar webhook-URL:en tjänsten postar till
-      - chat:write # valfritt: framtida bot-poster utan webhook
+      - incoming-webhook # webhook-URL:en tjänsten postar mål/referat till
+      - chat:write # privata @arne-svar (chat.postEphemeral)
+      - app_mentions:read # ta emot @arne-omnämnanden
+      - users:read # auto-koppla Slack-namn -> tipsspelare
 
 settings:
+  # @arne-omnämnanden skickas hit; Workern verifierar och svarar privat.
+  event_subscriptions:
+    request_url: https://vm-tipset.marcus-lindblom.workers.dev/slack/events
+    bot_events:
+      - app_mention
   org_deploy_enabled: false
   socket_mode_enabled: false
   token_rotation_enabled: false
