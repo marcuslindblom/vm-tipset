@@ -38,11 +38,14 @@ jobs:
           APISPORTS_KEY: ${{ secrets.APISPORTS_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
-          printf '%s' "$APISPORTS_KEY" | npx wrangler secret put APISPORTS_KEY
-          printf '%s' "$SLACK_WEBHOOK_URL" | npx wrangler secret put SLACK_WEBHOOK_URL
-          if [ -n "$GOOGLE_GENERATIVE_AI_API_KEY" ]; then
-            printf '%s' "$GOOGLE_GENERATIVE_AI_API_KEY" | npx wrangler secret put GOOGLE_GENERATIVE_AI_API_KEY
-          else
-            echo "GOOGLE_GENERATIVE_AI_API_KEY ej satt – hoppar över (referat avstängt)"
-          fi
+          put() { # put <NAMN> <värde> – sätter bara om värdet finns
+            if [ -n "$2" ]; then printf '%s' "$2" | npx wrangler secret put "$1"; else echo "$1 ej satt – hoppar över"; fi
+          }
+          put APISPORTS_KEY "$APISPORTS_KEY"
+          put SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
+          put GOOGLE_GENERATIVE_AI_API_KEY "$GOOGLE_GENERATIVE_AI_API_KEY"
+          put SLACK_SIGNING_SECRET "$SLACK_SIGNING_SECRET"
+          put SLACK_BOT_TOKEN "$SLACK_BOT_TOKEN"

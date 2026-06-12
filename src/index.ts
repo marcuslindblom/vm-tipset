@@ -5,6 +5,7 @@ import { GoalWatcher } from "./watcher";
 import { fixtures, keyBy, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
 import { generateCommentary } from "./commentary";
+import { verifySlackSignature } from "./slackapi";
 
 const KICKOFFS_MS = toKickoffMs(kickoffs);
 
@@ -39,9 +40,32 @@ function syntheticMatch(key: string, home: number, away: number, status: string,
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     const w = watcher(env);
+
+    // Slack Events API: @arne-omnämnanden (verifiera signatur, ack:a snabbt).
+    if (url.pathname === "/slack/events" && req.method === "POST") {
+      const raw = await req.text();
+      if (!env.SLACK_SIGNING_SECRET) return new Response("ej konfigurerad", { status: 503 });
+      const ok = await verifySlackSignature(
+        env.SLACK_SIGNING_SECRET,
+        req.headers.get("x-slack-request-timestamp") ?? "",
+        raw,
+        req.headers.get("x-slack-signature") ?? "",
+      );
+      if (!ok) return new Response("ogiltig signatur", { status: 401 });
+
+      const body: any = JSON.parse(raw);
+      if (body.type === "url_verification") return json({ challenge: body.challenge });
+      if (req.headers.get("x-slack-retry-num")) return new Response("ok"); // hoppa över retries
+      if (body.type === "event_callback" && body.event?.type === "app_mention") {
+        const e = body.event;
+        const text = String(e.text ?? "").replace(/<@[^>]+>/g, "").trim();
+        ctx.waitUntil(w.handleMention(e.channel, e.user, text));
+      }
+      return new Response("ok");
+    }
 
     switch (url.pathname) {
       case "/health": {

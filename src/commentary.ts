@@ -107,13 +107,9 @@ function buildPrompt(c: CommentaryContext): string {
   return lines.join("\n");
 }
 
-export async function generateCommentary(env: Env, c: CommentaryContext): Promise<string | null> {
-  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
-  const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
-  const prompt = buildPrompt(c);
-  const system = systemPrompt(env.COMPANY_NAME || "Strife");
+async function runChain(env: Env, system: string, prompt: string): Promise<string | null> {
+  const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY! });
   const chain = modelChain(env);
-
   for (let i = 0; i < chain.length; i++) {
     try {
       const { text } = await generateText({
@@ -128,10 +124,32 @@ export async function generateCommentary(env: Env, c: CommentaryContext): Promis
       const out = text.trim();
       if (out) return out;
     } catch (e) {
-      console.error(`kommentar-fel (${chain[i]}):`, (e as Error).message);
+      console.error(`gemini-fel (${chain[i]}):`, (e as Error).message);
     }
   }
   return null;
+}
+
+export async function generateCommentary(env: Env, c: CommentaryContext): Promise<string | null> {
+  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
+  return runChain(env, systemPrompt(env.COMPANY_NAME || "Strife"), buildPrompt(c));
+}
+
+export interface AssistInput {
+  player: string;
+  question: string;
+  myMatches: string; // förformaterad sammanfattning av spelarens tips
+  standings: string; // förformaterad totalställning
+}
+
+/** Arne svarar på en spelares fråga (privat) med VÅR data – hittar aldrig på siffror. */
+export async function answerAsArne(env: Env, a: AssistInput): Promise<string | null> {
+  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
+  const company = env.COMPANY_NAME || "Strife";
+  const system = `Du är "Arne Hegerfors", speaker i VM-tipset på ${company}. ${a.player} frågar dig något privat.
+Svara kort och varmt (1–3 meningar) på svenska i din röst. ANVÄND ENDAST datan nedan – hitta ALDRIG på tips, lag eller siffror. Kan frågan inte besvaras med datan, säg det vänligt och tipsa om vad man kan fråga (sina tips eller ställningen). Ingen emoji, inga citattecken runt svaret.`;
+  const prompt = `Fråga från ${a.player}: "${a.question}"\n\n— ${a.player}s tips —\n${a.myMatches}\n\n— Totalställning —\n${a.standings}`;
+  return runChain(env, system, prompt);
 }
 
 /** Modellkedjan: GEMINI_MODELS (kommaseparerad) eller default-kedja. */

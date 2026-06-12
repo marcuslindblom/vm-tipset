@@ -13,6 +13,7 @@ export interface FixtureInfo {
   awaySv: string;
   group: string;
   excelDate: string;
+  kickoff: string | null; // ISO UTC
   fixtureId: number | null;
 }
 
