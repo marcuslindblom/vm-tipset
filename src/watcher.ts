@@ -178,6 +178,7 @@ export class GoalWatcher extends DurableObject<Env> {
       home: names.home,
       away: names.away,
       score: c.match.score,
+      prev: c.prev,
       minute: c.match.elapsed,
       round: f ? `Grupp ${f.group}` : c.match.round,
       scorer: c.scorer,
