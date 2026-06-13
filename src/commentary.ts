@@ -28,6 +28,7 @@ export interface CommentaryContext {
   tippers: TipperView[];
   leader?: string;
   movers?: string; // "Adam ▲2, Marcus ▼1"
+  statsText?: string; // matchfakta (bollinnehav, skott, xG) vid halvtid/full tid
 }
 
 // Arnes röst – delas av målreferat och de privata @arne-svaren. Citaten är äkta
@@ -116,6 +117,9 @@ function buildPrompt(c: CommentaryContext): string {
       : "",
     c.leader ? `Leder tipset: ${c.leader}` : "",
     c.movers ? `Rörelse i tabellen: ${c.movers}` : "",
+    (c.kind === "halftime" || c.kind === "fulltime") && c.statsText
+      ? `Matchfakta: ${c.statsText}\n(väv gärna in EN av siffrorna kort och naturligt – peka på det mest talande, inte alla)`
+      : "",
   ].filter(Boolean);
   return lines.join("\n");
 }

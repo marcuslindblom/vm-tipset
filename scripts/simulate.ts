@@ -15,9 +15,9 @@ import {
 } from "../src/predictions.ts";
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "../src/engine.ts";
 import { computeStandings, gradeMatch, isExact, type Prediction } from "../src/scoring.ts";
-import { headline, standingsText, matchPointsText, type GoalView, type MatchPointRow } from "../src/slack.ts";
+import { headline, standingsText, matchPointsText, statsSummary, type GoalView, type MatchPointRow } from "../src/slack.ts";
 import { generateCommentary, type CommentaryContext, type TipperView } from "../src/commentary.ts";
-import type { Env, LiveMatch, MatchEvent, MatchResult, Score } from "../src/types.ts";
+import type { Env, LiveMatch, MatchEvent, MatchResult, MatchStats, Score } from "../src/types.ts";
 
 // Bygg en minimal env från .dev.vars (för Arnes referat).
 function devEnv(): Env {
@@ -53,6 +53,22 @@ for (const [player, byKey] of Object.entries(SYNTH))
     if (!preds.has(key)) preds.set(key, new Map());
     preds.get(key)!.set(player, p);
   }
+
+// Syntetisk lagstatistik per match (motsvarar /fixtures/statistics) för HT/FT-fakta.
+const STATS: Record<string, MatchStats> = {
+  [A]: {
+    home: { possession: "55%", totalShots: 12, shotsOnGoal: 5, corners: 5, saves: 3, xg: "1.8" },
+    away: { possession: "45%", totalShots: 9, shotsOnGoal: 4, corners: 3, saves: 4, xg: "1.3" },
+  },
+  [B]: {
+    home: { possession: "71%", totalShots: 18, shotsOnGoal: 8, corners: 9, saves: 1, xg: "2.9" },
+    away: { possession: "29%", totalShots: 4, shotsOnGoal: 1, corners: 1, saves: 6, xg: "0.3" },
+  },
+  [C]: {
+    home: { possession: "64%", totalShots: 14, shotsOnGoal: 3, corners: 7, saves: 2, xg: "1.1" },
+    away: { possession: "36%", totalShots: 5, shotsOnGoal: 2, corners: 2, saves: 3, xg: "0.6" },
+  },
+};
 
 // Aktuellt läge per match: ställning, minut, status, events.
 const cur: Record<string, { h: number; a: number; min: number; status: string; events: MatchEvent[] }> = {
@@ -109,9 +125,13 @@ async function tick(active: string[]): Promise<void> {
       const outcome = isExact(p, c.match.score) ? "exakt" : gradeMatch(p, c.match.score) > 0 ? "rätt tecken" : "fel";
       tippers.push({ player, pred: `${p.home}-${p.away}`, outcome });
     }
+    const statsText =
+      (c.kind === "halftime" || c.kind === "fulltime") && STATS[c.key]
+        ? (statsSummary(names.home, names.away, STATS[c.key]) ?? undefined)
+        : undefined;
     const ctx: CommentaryContext = {
       kind: c.kind, home: names.home, away: names.away, score: c.match.score, prev: c.prev, minute: c.match.elapsed,
-      round: `Grupp ${fixtures[c.key].group}`, scorer: c.scorer, assist: c.assist, detail: c.detail, team: c.team, tippers, leader, movers,
+      round: `Grupp ${fixtures[c.key].group}`, scorer: c.scorer, assist: c.assist, detail: c.detail, team: c.team, tippers, leader, movers, statsText,
     };
     const commentary = await generateCommentary(env, ctx);
     const allTips =
@@ -124,7 +144,7 @@ async function tick(active: string[]): Promise<void> {
             .filter(Boolean)
             .join(" · ")
         : undefined;
-    const view: GoalView = { kind: c.kind, homeName: names.home, awayName: names.away, score: c.match.score, minute: c.match.elapsed, scorer: c.scorer, detail: c.detail, team: c.team, context: `Grupp ${fixtures[c.key].group} · VM 2026`, allTips, commentary };
+    const view: GoalView = { kind: c.kind, homeName: names.home, awayName: names.away, score: c.match.score, minute: c.match.elapsed, scorer: c.scorer, detail: c.detail, team: c.team, context: `Grupp ${fixtures[c.key].group} · VM 2026`, allTips, statsText, commentary };
     if (c.kind === "fulltime") {
       const mp: MatchPointRow[] = [...(preds.get(c.key) ?? [])]
         .map(([player, p]) => ({ player, points: gradeMatch(p, c.match.score) }))
@@ -146,6 +166,10 @@ function render(
   if (view.context) console.log("│ " + view.context);
   console.log("│ " + headline(view));
   if (commentary) for (const l of wrap(`🎙️ ${commentary} — Arne`, 60)) console.log("│ " + l);
+  if (view.statsText) {
+    console.log("│ 📈 Matchfakta:");
+    for (const l of wrap(view.statsText, 60)) console.log("│   " + l);
+  }
   if (view.allTips) {
     console.log("│ 🎲 Allas tips:");
     for (const l of wrap(view.allTips, 60)) console.log("│   " + l);
@@ -177,6 +201,9 @@ function redCard(key: string, min: number, player: string, team: "home" | "away"
   cur[key].min = min; cur[key].status = min > 45 ? "2H" : "1H";
   cur[key].events.push({ type: "Card", detail: "Red Card", team: fixtures[key][team === "home" ? "home" : "away"], player, elapsed: min });
 }
+function halftime(keys: string[]): void {
+  for (const k of keys) { cur[k].status = "HT"; cur[k].min = 45; }
+}
 
 // ── Scenario ──────────────────────────────────────────────────────────────────
 console.log("VM-tipset – E2E-simulering med Arnes AI-referat" + (env.GOOGLE_GENERATIVE_AI_API_KEY ? "" : "  (ingen Gemini-nyckel → utan referat)"));
@@ -189,6 +216,7 @@ goal(B, 1, 0, 12, "Lamine Yamal", "home", "Pedri"); await tick(all);
 goal(A, 1, 0, 23, "J. Quiñones", "home"); await tick(all);
 redCard(C, 38, "M. Daoud", "away"); await tick(all);
 goal(A, 1, 1, 41, "P. Mahlambi", "away"); await tick(all);
+halftime(all); await tick(all); // ← halvtid (visar matchfakta)
 goal(B, 2, 0, 55, "Á. Morata", "home"); await tick(all);
 goal(A, 2, 1, 67, "R. Jiménez", "home", "R. Alvarado"); await tick(all);
 goal(B, 3, 0, 78, "Nico Williams", "home"); await tick(all);

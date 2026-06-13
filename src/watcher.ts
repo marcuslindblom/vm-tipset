@@ -10,7 +10,7 @@ import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scori
 import { players, predictionsByMatch, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
 import { toSwedish } from "./teams";
-import { buildGoalMessage, postSlack, type GoalView, type MatchPointRow } from "./slack";
+import { buildGoalMessage, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
 import { generateCommentary, answerAsArne, type CommentaryContext, type TipperView } from "./commentary";
 import { postEphemeral } from "./slackapi";
 
@@ -283,7 +283,12 @@ export class GoalWatcher extends DurableObject<Env> {
     let postedTable = false;
     for (const c of changes) {
       const names = displayNames(c.key, c.match);
-      const commentary = await generateCommentary(this.env, this.contextFor(c, names, preds, leader, movers));
+      // Vid halvtid/full tid: hämta lagstatistik så Arne kan krydda med en siffra.
+      const statsText = await this.statsTextFor(c, api, names);
+      const commentary = await generateCommentary(
+        this.env,
+        this.contextFor(c, names, preds, leader, movers, statsText),
+      );
       const f = fixtures[c.key];
       const view: GoalView = {
         kind: c.kind,
@@ -296,6 +301,7 @@ export class GoalWatcher extends DurableObject<Env> {
         team: c.team ? toSwedish(c.team) : undefined,
         context: f ? `Grupp ${f.group} · VM 2026` : c.match.round ? `${c.match.round} · VM 2026` : "VM 2026",
         allTips: c.kind === "kickoff" ? tipsLine(c.key, preds) : undefined,
+        statsText,
         commentary,
       };
       // Under matchen: bara rubrik + Arne. Vid full tid: matchpoäng + totalställning.
@@ -319,6 +325,23 @@ export class GoalWatcher extends DurableObject<Env> {
     return changes.length;
   }
 
+  /** Lagstatistik som läsbar rad – bara vid halvtid/full tid och när API:t finns. */
+  private async statsTextFor(
+    c: Change,
+    api: ApiFootball | null,
+    names: { home: string; away: string },
+  ): Promise<string | undefined> {
+    if (c.kind !== "halftime" && c.kind !== "fulltime") return undefined;
+    if (!api || !c.match.fixtureId) return undefined;
+    try {
+      const stats = await api.statsByFixture(c.match.fixtureId, c.match.home.name);
+      return stats ? (statsSummary(names.home, names.away, stats) ?? undefined) : undefined;
+    } catch (e) {
+      console.error("stats-fel:", (e as Error).message);
+      return undefined;
+    }
+  }
+
   /** Poäng varje spelare fick i en enskild match (för full tid-kortet). */
   private matchPointsFor(key: string, score: Score, preds: Preds): MatchPointRow[] {
     const rows: MatchPointRow[] = [];
@@ -334,6 +357,7 @@ export class GoalWatcher extends DurableObject<Env> {
     preds: Preds,
     leader: string | undefined,
     movers: string,
+    statsText?: string,
   ): CommentaryContext {
     const tippers: TipperView[] = [];
     const byPlayer = preds.get(c.key);
@@ -363,6 +387,7 @@ export class GoalWatcher extends DurableObject<Env> {
       tippers,
       leader,
       movers,
+      statsText,
     };
   }
 

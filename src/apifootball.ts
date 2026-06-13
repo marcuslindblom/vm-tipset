@@ -2,7 +2,7 @@
 // Funkar både direkt (v3.football.api-sports.io, x-apisports-key) och via
 // RapidAPI (api-football-v1.p.rapidapi.com/v3, x-rapidapi-key).
 
-import type { LiveMatch } from "./types";
+import type { LiveMatch, MatchStats, TeamStats } from "./types";
 
 function buildHeaders(host: string, key: string): Record<string, string> {
   if (host.includes("rapidapi")) {
@@ -30,6 +30,21 @@ function mapFixture(f: any): LiveMatch {
       assist: e.assist?.name || undefined,
       elapsed: e.time?.elapsed ?? null,
     })),
+  };
+}
+
+/** Plockar ut de fält vi bryr oss om ur ett lags statistik-block. */
+function mapTeamStats(block: any): TeamStats {
+  const by: Record<string, any> = {};
+  for (const s of block?.statistics ?? []) by[s.type] = s.value;
+  const num = (v: any): number | null => (v == null ? null : typeof v === "number" ? v : Number(v));
+  return {
+    possession: by["Ball Possession"] ?? null,
+    totalShots: num(by["Total Shots"]),
+    shotsOnGoal: num(by["Shots on Goal"]),
+    corners: num(by["Corner Kicks"]),
+    saves: num(by["Goalkeeper Saves"]),
+    xg: by["expected_goals"] ?? null,
   };
 }
 
@@ -67,5 +82,16 @@ export class ApiFootball {
     const json = await this.get(`/fixtures?id=${id}`);
     const f = (json.response as any[])[0];
     return f ? mapFixture(f) : null;
+  }
+
+  /** Lagstatistik för en match (bollinnehav, skott, xG …). Hämtas vid halvtid/full tid. */
+  async statsByFixture(fixtureId: number, homeName: string): Promise<MatchStats | null> {
+    const json = await this.get(`/fixtures/statistics?fixture=${fixtureId}`);
+    const arr = json.response as any[];
+    if (!arr || arr.length < 2) return null;
+    // Statistik-svaret säger inte hem/borta – matcha på lagnamn (fall tillbaka på ordning).
+    const home = arr.find((b) => b.team?.name === homeName) ?? arr[0];
+    const away = arr.find((b) => b !== home) ?? arr[1];
+    return { home: mapTeamStats(home), away: mapTeamStats(away) };
   }
 }
