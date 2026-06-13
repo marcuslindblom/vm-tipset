@@ -1,7 +1,7 @@
 // Slack Block Kit-meddelanden: händelsenotis + Arnes referat + topplista med pilar.
 // Utan SLACK_WEBHOOK_URL körs allt i dry-run (loggar payloaden i stället för att posta).
 
-import type { Env, Score } from "./types";
+import type { Env, MatchStats, Score, TeamStats } from "./types";
 import { MATCH_POINTS, type StandingRow } from "./scoring";
 import type { ChangeKind } from "./engine";
 
@@ -16,7 +16,28 @@ export interface GoalView {
   team?: string; // lag för kort/straff
   context?: string; // t.ex. "Grupp F · VM 2026" (visas som liten etikett)
   allTips?: string; // allas tips för matchen (visas vid avspark)
+  statsText?: string; // matchfakta (visas vid halvtid/full tid)
   commentary?: string | null; // Arnes AI-referat (kan saknas)
+}
+
+/**
+ * Kompakt, läsbar matchfakta-rad per lag: "Sverige: 24% boll, 2 skott (1 på mål), xG 0.39 ·
+ * Tunisien: …". Samma sträng matas in i Arnes prompt så han kan kommentera EN siffra.
+ * Returnerar null om inget mätvärde finns.
+ */
+export function statsSummary(homeName: string, awayName: string, s: MatchStats): string | null {
+  const side = (name: string, t: TeamStats): string => {
+    const bits: string[] = [];
+    if (t.possession) bits.push(`${t.possession} boll`);
+    if (t.totalShots != null)
+      bits.push(t.shotsOnGoal != null ? `${t.totalShots} skott (${t.shotsOnGoal} på mål)` : `${t.totalShots} skott`);
+    if (t.corners != null) bits.push(`${t.corners} hörnor`);
+    if (t.saves != null) bits.push(`${t.saves} räddningar`);
+    if (t.xg) bits.push(`xG ${t.xg}`);
+    return bits.length ? `${name}: ${bits.join(", ")}` : "";
+  };
+  const both = [side(homeName, s.home), side(awayName, s.away)].filter(Boolean);
+  return both.length ? both.join(" · ") : null;
 }
 
 function arrow(delta: number): string {
@@ -122,6 +143,10 @@ export function buildGoalMessage(
 
   if (g.commentary) {
     blocks.push({ type: "section", text: { type: "mrkdwn", text: `> _${g.commentary}_\n> — Arne` } });
+  }
+
+  if ((g.kind === "halftime" || g.kind === "fulltime") && g.statsText) {
+    blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: `📈 ${g.statsText}` }] });
   }
 
   if (g.kind === "kickoff" && g.allTips) {

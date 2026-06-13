@@ -35,6 +35,21 @@ export interface Score {
   away: number;
 }
 
+/** Lagstatistik från /fixtures/statistics (per lag). null = saknas/0 i feeden. */
+export interface TeamStats {
+  possession: string | null; // "76%"
+  totalShots: number | null;
+  shotsOnGoal: number | null;
+  corners: number | null;
+  saves: number | null;
+  xg: string | null; // expected_goals, "1.63"
+}
+
+export interface MatchStats {
+  home: TeamStats;
+  away: TeamStats;
+}
+
 /** En match som den ser ut just nu (från API-Football live=all eller fixtures). */
 export interface LiveMatch {
   fixtureId: number;
