@@ -119,26 +119,45 @@ export function applyLiveSnapshot(
   return { results, liveKeys, changes, goneKeys };
 }
 
-/** Finalisera matcher som fallit ur live-listan. */
+export interface FinalizeResult {
+  changes: Change[];
+  /** Matcher som lämnat live men där fixtures-feeden ännu visar pågående (blip/eftersläpning)
+   *  => lås INTE fast som final; fortsätt bevaka så FT postas korrekt när matchen verkligen är slut. */
+  keepLive: string[];
+}
+
+/**
+ * Finalisera matcher som fallit ur live-listan.
+ * - fixtures-feeden bekräftar slut (FT/AET/PEN) => finalisera med slutresultatet, posta FT.
+ * - hämtning misslyckades (null) => matchen är borta ur live; finalisera med senast sedda ställning.
+ * - fixtures-feeden visar ännu pågående (t.ex. "2H") => eventual consistency mellan live- och
+ *   fixtures-feeden; behåll bevakning i stället för att låsa fast den som final (annars tappas
+ *   den ur liveKeys och finaliseras aldrig).
+ */
 export function finalizeGone(
   results: Record<string, MatchResult>,
   goneKeys: string[],
   fetched: Map<string, LiveMatch | null>,
-): Change[] {
+): FinalizeResult {
   const changes: Change[] = [];
+  const keepLive: string[] = [];
   for (const key of goneKeys) {
     const prev = results[key];
     if (!prev || prev.final) continue;
     const fin = fetched.get(key) ?? null;
+    if (fin && !isFinal(fin.status)) {
+      keepLive.push(key);
+      continue;
+    }
     if (fin) {
-      results[key] = toResult(fin, isFinal(fin.status));
-      if (isFinal(fin.status)) changes.push({ key, match: fin, prev: prev.score, kind: "fulltime" });
+      results[key] = toResult(fin, true);
+      changes.push({ key, match: fin, prev: prev.score, kind: "fulltime" });
     } else {
       results[key] = { ...prev, final: true };
       changes.push({ key, match: resultToLive(prev), prev: prev.score, kind: "fulltime" });
     }
   }
-  return changes;
+  return { changes, keepLive };
 }
 
 // ── Händelse-diff (röda kort, missade straffar …) ─────────────────────────────

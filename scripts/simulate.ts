@@ -106,7 +106,7 @@ async function tick(active: string[]): Promise<void> {
   const snap = snapshot(active);
   const baseline = new Set(snap.map(keyOfLive).filter((k) => !results[k]));
   const diff = applyLiveSnapshot(results, liveKeys, snap, keyOfLive);
-  const finals = finalizeGone(diff.results, diff.goneKeys, new Map(diff.goneKeys.map((k) => [k, null])));
+  const { changes: finals } = finalizeGone(diff.results, diff.goneKeys, new Map(diff.goneKeys.map((k) => [k, null])));
   const ev = diffEvents(seen, snap, keyOfLive, baseline);
   results = diff.results;
   liveKeys = diff.liveKeys;
