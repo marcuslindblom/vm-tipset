@@ -73,13 +73,35 @@ test("annan statusövergång (2H -> ET) ger ingen händelse", () => {
   assert.equal(b.changes.length, 0);
 });
 
-test("match som faller ur live finaliseras => kind fulltime", () => {
+test("match som faller ur live finaliseras (hämtning misslyckas => sista ställning)", () => {
   const a = applyLiveSnapshot({}, [], [lm(1, "A", "B", [2, 1], "2H", 90)], keyOf);
   const b = applyLiveSnapshot(a.results, a.liveKeys, [], keyOf);
   assert.deepEqual(b.goneKeys, ["1"]);
-  const changes = finalizeGone(b.results, b.goneKeys, new Map([["1", null]]));
+  const { changes, keepLive } = finalizeGone(b.results, b.goneKeys, new Map([["1", null]]));
+  assert.equal(changes[0].kind, "fulltime");
+  assert.equal(changes[0].match.score.home, 2);
+  assert.equal(b.results["1"].final, true);
+  assert.equal(keepLive.length, 0);
+});
+
+test("gone men fixtures-feeden visar ännu 2H => behåll bevakning, finalisera inte", () => {
+  const a = applyLiveSnapshot({}, [], [lm(1, "A", "B", [1, 1], "2H", 90)], keyOf);
+  const b = applyLiveSnapshot(a.results, a.liveKeys, [], keyOf);
+  const stillLive = lm(1, "A", "B", [1, 1], "2H", 90); // eventual consistency: ännu inte FT
+  const { changes, keepLive } = finalizeGone(b.results, b.goneKeys, new Map([["1", stillLive]]));
+  assert.equal(changes.length, 0);
+  assert.deepEqual(keepLive, ["1"]);
+  assert.equal(b.results["1"].final, false);
+});
+
+test("gone och fixtures-feeden bekräftar FT => finalisera med API:ts slutresultat", () => {
+  const a = applyLiveSnapshot({}, [], [lm(1, "A", "B", [2, 1], "2H", 90)], keyOf);
+  const b = applyLiveSnapshot(a.results, a.liveKeys, [], keyOf);
+  const finMatch = lm(1, "A", "B", [3, 1], "FT", 90); // sent mål hann med i fixtures-feeden
+  const { changes } = finalizeGone(b.results, b.goneKeys, new Map([["1", finMatch]]));
   assert.equal(changes[0].kind, "fulltime");
   assert.equal(b.results["1"].final, true);
+  assert.equal(b.results["1"].score.home, 3);
 });
 
 test("diffEvents: rött kort fångas, men gamla events vid baseline annonseras inte", () => {

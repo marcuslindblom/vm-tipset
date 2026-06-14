@@ -4,6 +4,7 @@
 
 import { DurableObject } from "cloudflare:workers";
 import type { Env, LiveMatch, MatchResult, Score } from "./types";
+import { isFinal } from "./types";
 import { ApiFootball } from "./apifootball";
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "./engine";
 import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scoring";
@@ -270,21 +271,17 @@ export class GoalWatcher extends DurableObject<Env> {
 
     const diff = applyLiveSnapshot(prevResults, prevLiveKeys, live, keyOfLive);
 
-    // Finalisera matcher som fallit ur live-listan.
+    // Finalisera matcher som fallit ur live-listan (hämta slutresultat per id).
     const fetched = new Map<string, LiveMatch | null>();
-    for (const key of diff.goneKeys) {
-      const prev = diff.results[key];
-      let fin: LiveMatch | null = null;
-      if (api && prev?.fixtureId) {
-        try {
-          fin = await api.fixtureById(prev.fixtureId);
-        } catch {
-          fin = null;
-        }
-      }
-      fetched.set(key, fin);
-    }
-    const finalChanges = finalizeGone(diff.results, diff.goneKeys, fetched);
+    for (const key of diff.goneKeys) fetched.set(key, await this.fetchFixture(api, diff.results[key]));
+    const { changes: finalChanges, keepLive } = finalizeGone(diff.results, diff.goneKeys, fetched);
+    // Matcher som ännu visas pågående i fixtures-feeden (blip/eftersläpning): fortsätt bevaka,
+    // så de inte tappas ur liveKeys och fastnar icke-finala.
+    for (const key of keepLive) diff.liveKeys.push(key);
+
+    // Självläkande: tyst-finalisera matcher vars fönster passerat men som fastnat icke-final
+    // (t.ex. om feed-eftersläpning sammanföll med ett schemaglapp). Postar inget till Slack.
+    await this.sweepStuck(api, diff.results, diff.liveKeys);
 
     // Övriga dramatiska händelser (röda kort, missade straffar).
     const ev = diffEvents(seenEvents, live, keyOfLive, baselineKeys);
@@ -350,6 +347,38 @@ export class GoalWatcher extends DurableObject<Env> {
     }
 
     return changes.length;
+  }
+
+  /** Hämta en match per id (för finalisering). Tyst null vid avsaknad/fel. */
+  private async fetchFixture(api: ApiFootball | null, prev?: MatchResult): Promise<LiveMatch | null> {
+    if (!api || !prev?.fixtureId) return null;
+    try {
+      return await api.fixtureById(prev.fixtureId);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Tyst-finalisera matcher vars matchfönster passerat men som ännu är icke-finala och inte
+   * längre live. Backstop för matcher som lämnat live utan att straddlas (feed-eftersläpning +
+   * schemaglapp). Uppdaterar ställningen som final UTAN att posta något till Slack.
+   */
+  private async sweepStuck(
+    api: ApiFootball | null,
+    results: Record<string, MatchResult>,
+    liveKeys: string[],
+  ): Promise<void> {
+    const windowMs = Number(this.env.MATCH_WINDOW_MINUTES) * 60_000;
+    const liveSet = new Set(liveKeys);
+    for (const [key, r] of Object.entries(results)) {
+      if (r.final || liveSet.has(key) || !windowPassed(key, windowMs)) continue;
+      const fin = await this.fetchFixture(api, r);
+      results[key] =
+        fin && isFinal(fin.status)
+          ? { fixtureId: fin.fixtureId, home: fin.home.name, away: fin.away.name, score: fin.score, status: fin.status, final: true }
+          : { ...r, final: true };
+    }
   }
 
   /** Lagstatistik som läsbar rad – bara vid halvtid/full tid och när API:t finns. */
@@ -433,6 +462,14 @@ function scoreMap(results: Record<string, MatchResult>): Map<string, Score> {
 }
 function rankingMap(obj: Record<string, number>): Map<string, number> {
   return new Map(Object.entries(obj));
+}
+
+/** Har matchens fönster (avspark + MATCH_WINDOW) passerat? Okänd avspark => anta ja. */
+function windowPassed(key: string, windowMs: number): boolean {
+  const iso = fixtures[key]?.kickoff;
+  if (!iso) return true;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? true : Date.now() > t + windowMs;
 }
 
 /** Allas tippade resultat för en match: "Adam 2-0 · Anders 1-0 · …". */
