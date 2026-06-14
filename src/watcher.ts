@@ -82,6 +82,33 @@ export class GoalWatcher extends DurableObject<Env> {
     return { reset: true };
   }
 
+  /** Read-only ögonblicksbild av DO-tillståndet (drift/felsökning). */
+  async debugState(): Promise<unknown> {
+    const results = await this.loadResults();
+    const liveKeys = (await this.ctx.storage.get<string[]>("liveKeys")) ?? [];
+    const seen = (await this.ctx.storage.get<string[]>("seenEvents")) ?? [];
+    const ranking = await this.loadRanking();
+    const alarm = await this.ctx.storage.getAlarm();
+    const rows = Object.entries(results).map(([key, r]) => ({
+      key,
+      match: `${r.home} ${r.score.home}-${r.score.away} ${r.away}`,
+      status: r.status,
+      final: r.final,
+      live: liveKeys.includes(key),
+    }));
+    return {
+      now: new Date().toISOString(),
+      alarm: alarm ? new Date(alarm).toISOString() : null,
+      liveKeys,
+      resultsCount: rows.length,
+      finalizedCount: rows.filter((r) => r.final).length,
+      pendingFinalize: rows.filter((r) => !r.final).map((r) => `${r.key} (${r.match}, ${r.status}, live=${r.live})`),
+      results: rows,
+      seenEventsCount: seen.length,
+      hasRanking: Object.keys(ranking).length > 0,
+    };
+  }
+
   // ── @arne-assistent (privata svar) ────────────────────────────────────────
   async handleMention(channel: string, user: string, text: string): Promise<void> {
     const token = this.env.SLACK_BOT_TOKEN;

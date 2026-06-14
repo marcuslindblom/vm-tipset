@@ -89,6 +89,9 @@ export default {
       case "/standings":
         return json(await w.getStandings());
 
+      case "/debug":
+        return json(await w.debugState());
+
       case "/start":
         return json(await w.ensureAlarm());
 
