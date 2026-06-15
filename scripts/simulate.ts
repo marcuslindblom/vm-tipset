@@ -217,8 +217,10 @@ goal(A, 1, 0, 23, "J. Quiñones", "home"); await tick(all);
 redCard(C, 38, "M. Daoud", "away"); await tick(all);
 goal(A, 1, 1, 41, "P. Mahlambi", "away"); await tick(all);
 halftime(all); await tick(all); // ← halvtid (visar matchfakta)
+goal(C, 1, 0, 52, "A. Isak", "home"); await tick(all); // ← SVENSKT MÅL (eufori)
 goal(B, 2, 0, 55, "Á. Morata", "home"); await tick(all);
 goal(A, 2, 1, 67, "R. Jiménez", "home", "R. Alvarado"); await tick(all);
+goal(C, 1, 1, 75, "W. Khazri", "away"); await tick(all); // ← Sverige släpper in (förtvivlan)
 goal(B, 3, 0, 78, "Nico Williams", "home"); await tick(all);
 
 console.log("\n— matcherna slutspelas —");

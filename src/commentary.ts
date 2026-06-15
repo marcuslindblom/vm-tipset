@@ -101,6 +101,58 @@ function situation(c: CommentaryContext): string {
   return h.join("; ");
 }
 
+const SWEDEN = "Sverige";
+
+/**
+ * Patriotisk färg när Sverige spelar – Arne är inte neutral. Jubel när det går bra,
+ * lidande när det går emot, allt anpassat efter läget. Tom sträng när Sverige inte spelar.
+ */
+function swedishAngle(c: CommentaryContext): string {
+  const side = c.home === SWEDEN ? "home" : c.away === SWEDEN ? "away" : null;
+  if (!side) return "";
+  const se = side === "home" ? c.score.home : c.score.away;
+  const opp = side === "home" ? c.score.away : c.score.home;
+  const base =
+    "SVERIGE SPELAR – nu är du inte neutral. Släpp fram det svenska hjärtat: jubla högt när det går bra, lid med laget när det går emot. Förbli ändå ärlig och aldrig elak mot motståndaren.";
+
+  let tag: string;
+  if (c.kind === "goal") {
+    const scoredSide = c.score.home > (c.prev?.home ?? 0) ? "home" : "away";
+    tag =
+      scoredSide === side
+        ? "SVENSKT MÅL – brist ut i ren extas, det här är ögonblicket du lever för!"
+        : "Sverige släpper in – äkta förtvivlan och en djup suck, men ge inte upp hoppet.";
+  } else if (c.kind === "fulltime") {
+    tag =
+      se > opp
+        ? "Sverige vinner – hänförd stolthet, en svensk fotbollsfest värd att minnas."
+        : se < opp
+          ? "Sverige förlorar – tungt om hjärtat, sorgset men värdigt."
+          : "Oavgjort för Sverige – kluvna känslor, både lättnad och saknad.";
+  } else if (c.kind === "halftime") {
+    tag =
+      se > opp
+        ? "Sverige leder i paus – stolt men gruvligt nervös inför fortsättningen."
+        : se < opp
+          ? "Sverige under i paus – mana fram en svensk vändning."
+          : "Mållöst för Sverige i paus – det kribblar i magen.";
+  } else if (c.kind === "kickoff") {
+    tag = "Sverige kliver in på planen – pirr, förväntan och en tyst bön om en svensk kväll.";
+  } else if (c.kind === "redcard") {
+    tag =
+      c.team === SWEDEN
+        ? "En svensk utvisas – stön och oro, nu väntar en tung uppförsbacke."
+        : "Motståndaren ner till tio man – svensk tändvätska, nu vädrar du morgonluft!";
+  } else if (c.kind === "penalty_missed") {
+    tag = "Missad straff – håll andan tillsammans med hela Sverige.";
+  } else if (c.kind === "disallowed") {
+    tag = "Mål bortdömt – en svensk berg-och-dalbana i känslorna.";
+  } else {
+    tag = se > opp ? "Sverige leder – håll i hatten." : se < opp ? "Sverige jagar – pusha på laget!" : "Jämnt för Sverige – rena nervpirret.";
+  }
+  return `${base} ${tag}`;
+}
+
 function buildPrompt(c: CommentaryContext): string {
   const sit = situation(c);
   const lines = [
@@ -120,6 +172,7 @@ function buildPrompt(c: CommentaryContext): string {
     (c.kind === "halftime" || c.kind === "fulltime") && c.statsText
       ? `Matchfakta: ${c.statsText}\n(väv gärna in EN av siffrorna kort och naturligt – peka på det mest talande, inte alla)`
       : "",
+    swedishAngle(c),
   ].filter(Boolean);
   return lines.join("\n");
 }
