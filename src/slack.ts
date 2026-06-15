@@ -86,6 +86,10 @@ export function headline(g: GoalView): string {
       return `🚫 Mål underkänt – ${scoreLine(g)}`;
     case "halftime":
       return `⏸️ HALVTID · ${scoreLine(g)}`;
+    case "extratime":
+      return `⏱️ FÖRLÄNGNING · ${scoreLine(g)}`;
+    case "penalties":
+      return `🥅 STRAFFLÄGGNING · ${scoreLine(g)}`;
     case "fulltime":
       return `✅ FULL TID · ${scoreLine(g)}`;
     case "redcard": {
@@ -166,6 +170,24 @@ export function buildGoalMessage(
     });
   }
 
+  return { text: title, blocks };
+}
+
+/** Ledarbytes-notis: rubrik + Arnes reaktion + aktuell topplista. */
+export function buildLeadChangeMessage(
+  title: string,
+  standings: StandingRow[],
+  commentary: string | null,
+  context?: string,
+): SlackMessage {
+  const blocks: unknown[] = [];
+  if (context) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: context }] });
+  blocks.push({ type: "section", text: { type: "mrkdwn", text: `*${title}*` } });
+  if (commentary) blocks.push({ type: "section", text: { type: "mrkdwn", text: `> _${commentary}_\n> — Arne` } });
+  blocks.push({
+    type: "section",
+    text: { type: "mrkdwn", text: "📊 *Totalställning i VM-tipset*\n```\n" + standingsText(standings) + "\n```" },
+  });
   return { text: title, blocks };
 }
 

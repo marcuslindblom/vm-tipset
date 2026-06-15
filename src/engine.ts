@@ -8,6 +8,8 @@ export type ChangeKind =
   | "goal"
   | "disallowed" // VAR-underkänt (ställningen ned)
   | "halftime"
+  | "extratime" // förlängning inleds (slutspel, oavgjort efter ordinarie tid)
+  | "penalties" // straffläggning inleds (slutspel)
   | "fulltime"
   | "redcard"
   | "penalty_missed";
@@ -101,8 +103,13 @@ export function applyLiveSnapshot(
       }
       results[key] = toResult(m, false);
     } else if (prev.status !== m.status) {
+      // Notabla statusövergångar (mål hanteras ovan via ställningsändring).
       if (m.status === "HT" && prev.status !== "HT") {
         changes.push({ key, match: m, prev: prev.score, kind: "halftime" });
+      } else if (m.status === "ET" && prev.status !== "ET") {
+        changes.push({ key, match: m, prev: prev.score, kind: "extratime" });
+      } else if (m.status === "P" && prev.status !== "P") {
+        changes.push({ key, match: m, prev: prev.score, kind: "penalties" });
       }
       results[key] = toResult(m, false);
     }

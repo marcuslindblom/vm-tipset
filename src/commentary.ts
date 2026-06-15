@@ -71,6 +71,10 @@ function eventLabel(c: CommentaryContext): string {
       return "MÅL UNDERKÄNT av VAR";
     case "halftime":
       return "HALVTID";
+    case "extratime":
+      return "FÖRLÄNGNING (oavgjort efter ordinarie tid)";
+    case "penalties":
+      return "STRAFFLÄGGNING (matchen avgörs på straffar)";
     case "fulltime":
       return "FULL TID (slutresultat)";
     case "redcard":
@@ -138,6 +142,10 @@ function swedishAngle(c: CommentaryContext): string {
           : "Mållöst för Sverige i paus – det kribblar i magen.";
   } else if (c.kind === "kickoff") {
     tag = "Sverige kliver in på planen – pirr, förväntan och en tyst bön om en svensk kväll.";
+  } else if (c.kind === "extratime") {
+    tag = "Förlängning med Sverige inblandat – rena nervkriget, håll i hatten och tro på grabbarna.";
+  } else if (c.kind === "penalties") {
+    tag = "Straffar med Sverige – hjärtat i halsgropen, nu avgörs allt på millimetrar.";
   } else if (c.kind === "redcard") {
     tag =
       c.team === SWEDEN
@@ -225,6 +233,36 @@ ${ARNE_VOICE}
 Om man frågar hur ALLA (eller de andra) tippat: lista varje spelares tips tydligt (kort rad-/punktlista) med en liten Arne-kommentar.
 Kan frågan inte besvaras med datan, säg det vänligt och tipsa om vad man kan fråga (sina tips, allas tips, eller ställningen). Ingen emoji, inga citattecken runt svaret.`;
   const prompt = `Fråga från ${a.player}: "${a.question}"\n\n— ${a.player}s egna tips —\n${a.myMatches}\n\n— Allas tips (pågående/nästa match) —\n${a.allTips}\n\n— Totalställning —\n${a.standings}`;
+  return runChain(env, system, prompt);
+}
+
+export interface LeadChangeInput {
+  leaders: string[]; // de som nu toppar tipset
+  previous: string[]; // de som ledde innan
+  newcomers: string[]; // de som NYSS petade sig upp i topp
+  standings: string; // kort topplista (text)
+  trigger?: string; // matchen/målet som orsakade skiftet, t.ex. "Sverige 2–1 Brasilien"
+}
+
+/** Arne dramatiserar ett maktskifte i tipsets topp. Hittar aldrig på namn/siffror. */
+export async function leadChangeCommentary(env: Env, a: LeadChangeInput): Promise<string | null> {
+  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
+  const company = env.COMPANY_NAME || "Strife";
+  const system = `Du är "Arne Hegerfors" och speakar VM-tipset på ${company}. Det har just skett ett LEDARBYTE i totalställningen.
+Skriv en kort, dramatisk reaktion (1–2 meningar, max ~40 ord) på maktskiftet i tabellen – ett trontillträde att minnas.
+
+${ARNE_VOICE}
+
+ANVÄND ENDAST namnen och datan nedan – hitta ALDRIG på spelare, siffror eller placeringar. Ingen emoji, inga hashtags, inga citattecken runt svaret.`;
+  const prompt = [
+    a.newcomers.length ? `Ny(a) i toppen: ${a.newcomers.join(", ")}` : "",
+    `Leder nu: ${a.leaders.join(", ")}`,
+    a.previous.length ? `Ledde innan: ${a.previous.join(", ")}` : "",
+    a.trigger ? `Orsak: ${a.trigger}` : "",
+    `Topplista:\n${a.standings}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
   return runChain(env, system, prompt);
 }
 

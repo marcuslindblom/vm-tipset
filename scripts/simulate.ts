@@ -16,7 +16,7 @@ import {
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "../src/engine.ts";
 import { computeStandings, gradeMatch, isExact, type Prediction } from "../src/scoring.ts";
 import { headline, standingsText, matchPointsText, statsSummary, type GoalView, type MatchPointRow } from "../src/slack.ts";
-import { generateCommentary, type CommentaryContext, type TipperView } from "../src/commentary.ts";
+import { generateCommentary, leadChangeCommentary, type CommentaryContext, type TipperView } from "../src/commentary.ts";
 import type { Env, LiveMatch, MatchEvent, MatchResult, MatchStats, Score } from "../src/types.ts";
 
 // Bygg en minimal env från .dev.vars (för Arnes referat).
@@ -100,6 +100,7 @@ let results: Record<string, MatchResult> = {};
 let liveKeys: string[] = [];
 let seen = new Set<string>();
 let ranking: Record<string, number> = {};
+let simLeaders: string[] = [];
 const scoreMap = (r: Record<string, MatchResult>) => new Map(Object.entries(r).map(([k, v]) => [k, v.score]));
 
 async function tick(active: string[]): Promise<void> {
@@ -154,6 +155,39 @@ async function tick(active: string[]): Promise<void> {
       render(view, commentary, null);
     }
   }
+  // Ledarbyte: notis när någon ny petar sig upp i topp.
+  const leaders = standings.filter((r) => r.rank === 1).map((r) => r.player);
+  const prevSet = new Set(simLeaders);
+  const newcomers = leaders.filter((p) => !prevSet.has(p));
+  if (simLeaders.length && newcomers.length) {
+    const trigger = changes.find((c) => c.kind === "goal" || c.kind === "disallowed" || c.kind === "fulltime");
+    const triggerText = trigger
+      ? (() => {
+          const n = displayNames(trigger.key, trigger.match);
+          return `${n.home} ${trigger.match.score.home}–${trigger.match.score.away} ${n.away}`;
+        })()
+      : undefined;
+    const commentary = await leadChangeCommentary(env, {
+      leaders,
+      previous: simLeaders,
+      newcomers,
+      standings: standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n"),
+      trigger: triggerText,
+    });
+    const title =
+      leaders.length === 1
+        ? `👑 Nytt i toppen — ${leaders[0]} tar ledningen i tipset!`
+        : `👑 Delad ledning — ${leaders.join(" & ")} toppar tipset!`;
+    console.log("\n┌─ Slack → #vm-tipset " + "─".repeat(44));
+    console.log("│ 👑 Ledarbyte · VM-tipset");
+    console.log("│ " + title);
+    if (commentary) for (const l of wrap(`🎙️ ${commentary} — Arne`, 60)) console.log("│ " + l);
+    console.log("│ 📊 Totalställning i VM-tipset");
+    for (const l of standingsText(standings).split("\n")) console.log("│   " + l);
+    console.log("└" + "─".repeat(65));
+  }
+  simLeaders = leaders;
+
   if (changes.some((c) => c.kind === "fulltime")) ranking = Object.fromEntries(standings.map((r) => [r.player, r.rank]));
 }
 
@@ -229,3 +263,19 @@ await tick([]);
 console.log("\n=== Slutställning ===");
 for (const r of computeStandings(allPlayers, preds, scoreMap(results)))
   console.log(`  ${r.rank}. ${r.player.padEnd(8)} ${String(r.points).padStart(2)} p (${r.exact} exakta)`);
+
+// ── Slutspelsdemo: förlängning + straffläggning (med svensk patriotisk vinkel) ──
+console.log("\n— Slutspelsnotiser (förlängning & straffar) —");
+for (const kind of ["extratime", "penalties"] as const) {
+  const minute = kind === "extratime" ? 91 : 121;
+  const ctx: CommentaryContext = {
+    kind, home: "Sverige", away: "Brasilien", score: { home: 1, away: 1 }, prev: { home: 1, away: 1 },
+    minute, round: "Åttondelsfinal", tippers: [], leader: undefined, movers: "",
+  };
+  const commentary = await generateCommentary(env, ctx);
+  const view: GoalView = {
+    kind, homeName: "Sverige", awayName: "Brasilien", score: { home: 1, away: 1 }, minute,
+    context: "Åttondelsfinal · VM 2026", commentary,
+  };
+  render(view, commentary, null);
+}

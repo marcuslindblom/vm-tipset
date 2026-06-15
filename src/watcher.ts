@@ -11,8 +11,8 @@ import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scori
 import { players, predictionsByMatch, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
 import { toSwedish } from "./teams";
-import { buildGoalMessage, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
-import { generateCommentary, answerAsArne, type CommentaryContext, type TipperView } from "./commentary";
+import { buildGoalMessage, buildLeadChangeMessage, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
+import { generateCommentary, answerAsArne, leadChangeCommentary, type CommentaryContext, type TipperView } from "./commentary";
 import { postEphemeral } from "./slackapi";
 
 const KICKOFFS_MS = toKickoffMs(kickoffs);
@@ -338,6 +338,9 @@ export class GoalWatcher extends DurableObject<Env> {
       }
     }
 
+    // Ledarbyte i tipset: egen notis när någon ny petar sig upp på förstaplatsen.
+    await this.maybeAnnounceLeadChange(standings, changes);
+
     // Uppdatera "senast visade" placering bara när tabellen faktiskt visats (vid FT),
     // så pilarna vid full tid speglar rörelsen sedan förra full tid.
     if (postedTable) {
@@ -347,6 +350,44 @@ export class GoalWatcher extends DurableObject<Env> {
     }
 
     return changes.length;
+  }
+
+  /**
+   * Posta en notis när toppen av tipset ändras – men bara när någon SOM INTE ledde
+   * tidigare nu är (delad) etta. Tyst första gången (ingen tidigare ledare lagrad).
+   */
+  private async maybeAnnounceLeadChange(standings: StandingRow[], changes: Change[]): Promise<void> {
+    const leaders = standings.filter((r) => r.rank === 1).map((r) => r.player);
+    if (leaders.length === 0) return;
+    const previous = (await this.ctx.storage.get<string[]>("leaders")) ?? [];
+    await this.ctx.storage.put("leaders", leaders);
+
+    const prevSet = new Set(previous);
+    const newcomers = leaders.filter((p) => !prevSet.has(p));
+    if (previous.length === 0 || newcomers.length === 0) return; // första gången / ingen ny i topp
+
+    // Mål-/VAR-händelsen som troligen orsakade skiftet (för Arnes färg).
+    const trigger = changes.find((c) => c.kind === "goal" || c.kind === "disallowed" || c.kind === "fulltime");
+    const triggerText = trigger
+      ? (() => {
+          const n = displayNames(trigger.key, trigger.match);
+          return `${n.home} ${trigger.match.score.home}–${trigger.match.score.away} ${n.away}`;
+        })()
+      : undefined;
+
+    const title =
+      leaders.length === 1
+        ? `👑 Nytt i toppen — ${leaders[0]} tar ledningen i tipset!`
+        : `👑 Delad ledning — ${leaders.join(" & ")} toppar tipset!`;
+    const standingsSummary = standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n");
+    const commentary = await leadChangeCommentary(this.env, {
+      leaders,
+      previous,
+      newcomers,
+      standings: standingsSummary,
+      trigger: triggerText,
+    });
+    await postSlack(this.env, buildLeadChangeMessage(title, standings, commentary, "👑 Ledarbyte · VM-tipset"));
   }
 
   /** Hämta en match per id (för finalisering). Tyst null vid avsaknad/fel. */
