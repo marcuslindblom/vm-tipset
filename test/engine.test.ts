@@ -67,9 +67,23 @@ test("halvtid: 1H -> HT ger en halftime-händelse", () => {
   assert.equal(b.changes[0].kind, "halftime");
 });
 
-test("annan statusövergång (2H -> ET) ger ingen händelse", () => {
+test("statusövergång 2H -> ET ger förlängnings-händelse", () => {
   const a = applyLiveSnapshot({}, [], [lm(1, "A", "B", [1, 1], "2H")], keyOf);
-  const b = applyLiveSnapshot(a.results, a.liveKeys, [lm(1, "A", "B", [1, 1], "ET")], keyOf);
+  const b = applyLiveSnapshot(a.results, a.liveKeys, [lm(1, "A", "B", [1, 1], "ET", 91)], keyOf);
+  assert.equal(b.changes.length, 1);
+  assert.equal(b.changes[0].kind, "extratime");
+});
+
+test("statusövergång ET -> P ger straffläggnings-händelse", () => {
+  const a = applyLiveSnapshot({}, [], [lm(1, "A", "B", [1, 1], "ET", 120)], keyOf);
+  const b = applyLiveSnapshot(a.results, a.liveKeys, [lm(1, "A", "B", [1, 1], "P", 120)], keyOf);
+  assert.equal(b.changes.length, 1);
+  assert.equal(b.changes[0].kind, "penalties");
+});
+
+test("ej notabel statusövergång (2H -> BT) ger ingen händelse", () => {
+  const a = applyLiveSnapshot({}, [], [lm(1, "A", "B", [1, 1], "2H")], keyOf);
+  const b = applyLiveSnapshot(a.results, a.liveKeys, [lm(1, "A", "B", [1, 1], "BT")], keyOf);
   assert.equal(b.changes.length, 0);
 });
 
