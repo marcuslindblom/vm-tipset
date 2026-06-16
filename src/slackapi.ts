@@ -1,4 +1,4 @@
-// Slack inkommande API: signaturverifiering (Events API) + privat (ephemeral) svar.
+// Slack inkommande API: signaturverifiering (Events API) + publikt kanalsvar.
 
 /** Verifiera att en request verkligen kommer från Slack (HMAC-SHA256). */
 export async function verifySlackSignature(
@@ -30,18 +30,20 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Posta ett privat svar (bara `user` ser det) i kanalen. Kräver bot-token. */
-export async function postEphemeral(
+/** Posta ett publikt svar i kanalen (alla ser det). Trådas under frågan om `threadTs` anges. Kräver bot-token. */
+export async function postMessage(
   token: string,
   channel: string,
-  user: string,
   text: string,
+  threadTs?: string,
 ): Promise<void> {
-  const res = await fetch("https://slack.com/api/chat.postEphemeral", {
+  const body: Record<string, unknown> = { channel, text };
+  if (threadTs) body.thread_ts = threadTs;
+  const res = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: { "content-type": "application/json; charset=utf-8", authorization: `Bearer ${token}` },
-    body: JSON.stringify({ channel, user, text }),
+    body: JSON.stringify(body),
   });
   const json: any = await res.json().catch(() => ({}));
-  if (!json.ok) console.error("postEphemeral fel:", json.error ?? res.status);
+  if (!json.ok) console.error("postMessage fel:", json.error ?? res.status);
 }

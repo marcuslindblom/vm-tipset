@@ -13,7 +13,7 @@ import { scheduleState, toKickoffMs } from "./schedule";
 import { toSwedish } from "./teams";
 import { buildGoalMessage, buildLeadChangeMessage, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
 import { generateCommentary, answerAsArne, leadChangeCommentary, type CommentaryContext, type TipperView } from "./commentary";
-import { postEphemeral } from "./slackapi";
+import { postMessage } from "./slackapi";
 
 const KICKOFFS_MS = toKickoffMs(kickoffs);
 type Preds = ReturnType<typeof predictionsByMatch>;
@@ -110,8 +110,8 @@ export class GoalWatcher extends DurableObject<Env> {
     };
   }
 
-  // ── @arne-assistent (privata svar) ────────────────────────────────────────
-  async handleMention(channel: string, user: string, text: string): Promise<void> {
+  // ── @arne-assistent (publika svar i kanalen) ──────────────────────────────
+  async handleMention(channel: string, user: string, text: string, threadTs?: string): Promise<void> {
     const token = this.env.SLACK_BOT_TOKEN;
     if (!token) {
       console.error("SLACK_BOT_TOKEN saknas – kan inte svara på @arne");
@@ -126,9 +126,9 @@ export class GoalWatcher extends DurableObject<Env> {
       if (player) {
         usersMap[user] = player;
         await this.ctx.storage.put("slackUsers", usersMap);
-        await postEphemeral(token, channel, user, `Hej ${player}! Nu känner jag igen dig. Fråga mig t.ex. "hur har jag tippat?" eller "ställningen".`);
+        await postMessage(token, channel, `Hej ${player}! Nu känner jag igen dig. Fråga mig t.ex. "hur har jag tippat?" eller "ställningen".`, threadTs);
       } else {
-        await postEphemeral(token, channel, user, `Hmm, jag hittar ingen spelare som heter "${m[1]}". Spelare i tipset: ${players.join(", ")}.`);
+        await postMessage(token, channel, `Hmm, jag hittar ingen spelare som heter "${m[1]}". Spelare i tipset: ${players.join(", ")}.`, threadTs);
       }
       return;
     }
@@ -136,11 +136,11 @@ export class GoalWatcher extends DurableObject<Env> {
     // Auto-koppla via Slack-namnet (matchar tipsnamnet, ev. annat skiftläge).
     const player = usersMap[user] ?? (await this.resolvePlayer(token, user, usersMap));
     if (!player) {
-      await postEphemeral(token, channel, user, `Jag känner inte igen ditt namn automatiskt. Skriv "@arne jag heter <ditt namn>". Spelare: ${players.join(", ")}.`);
+      await postMessage(token, channel, `<@${user}> jag känner inte igen ditt namn automatiskt. Skriv "@arne jag heter <ditt namn>". Spelare: ${players.join(", ")}.`, threadTs);
       return;
     }
 
-    await postEphemeral(token, channel, user, await this.answer(player, text));
+    await postMessage(token, channel, await this.answer(player, text), threadTs);
   }
 
   /** Slå upp Slack-användarens namn och matcha mot en spelare (skiftlägesokänsligt). */
