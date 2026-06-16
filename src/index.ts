@@ -62,7 +62,8 @@ export default {
       if (body.type === "event_callback" && body.event?.type === "app_mention") {
         const e = body.event;
         const text = String(e.text ?? "").replace(/<@[^>]+>/g, "").trim();
-        ctx.waitUntil(w.handleMention(e.channel, e.user, text));
+        // Svara publikt, trådat under frågan (eller i befintlig tråd om frågan ställdes där).
+        ctx.waitUntil(w.handleMention(e.channel, e.user, text, e.thread_ts ?? e.ts));
       }
       return new Response("ok");
     }
