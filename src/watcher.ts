@@ -111,7 +111,7 @@ export class GoalWatcher extends DurableObject<Env> {
   }
 
   // ── @arne-assistent (publika svar i kanalen) ──────────────────────────────
-  async handleMention(channel: string, user: string, text: string, threadTs?: string): Promise<void> {
+  async handleMention(channel: string, user: string, text: string): Promise<void> {
     const token = this.env.SLACK_BOT_TOKEN;
     if (!token) {
       console.error("SLACK_BOT_TOKEN saknas – kan inte svara på @arne");
@@ -126,9 +126,9 @@ export class GoalWatcher extends DurableObject<Env> {
       if (player) {
         usersMap[user] = player;
         await this.ctx.storage.put("slackUsers", usersMap);
-        await postMessage(token, channel, `Hej ${player}! Nu känner jag igen dig. Fråga mig t.ex. "hur har jag tippat?" eller "ställningen".`, threadTs);
+        await postMessage(token, channel, `Hej ${player}! Nu känner jag igen dig. Fråga mig t.ex. "hur har jag tippat?" eller "ställningen".`);
       } else {
-        await postMessage(token, channel, `Hmm, jag hittar ingen spelare som heter "${m[1]}". Spelare i tipset: ${players.join(", ")}.`, threadTs);
+        await postMessage(token, channel, `Hmm, jag hittar ingen spelare som heter "${m[1]}". Spelare i tipset: ${players.join(", ")}.`);
       }
       return;
     }
@@ -136,11 +136,11 @@ export class GoalWatcher extends DurableObject<Env> {
     // Auto-koppla via Slack-namnet (matchar tipsnamnet, ev. annat skiftläge).
     const player = usersMap[user] ?? (await this.resolvePlayer(token, user, usersMap));
     if (!player) {
-      await postMessage(token, channel, `<@${user}> jag känner inte igen ditt namn automatiskt. Skriv "@arne jag heter <ditt namn>". Spelare: ${players.join(", ")}.`, threadTs);
+      await postMessage(token, channel, `<@${user}> jag känner inte igen ditt namn automatiskt. Skriv "@arne jag heter <ditt namn>". Spelare: ${players.join(", ")}.`);
       return;
     }
 
-    await postMessage(token, channel, await this.answer(player, text), threadTs);
+    await postMessage(token, channel, await this.answer(player, text));
   }
 
   /** Slå upp Slack-användarens namn och matcha mot en spelare (skiftlägesokänsligt). */
