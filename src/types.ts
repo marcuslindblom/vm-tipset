@@ -61,6 +61,7 @@ export interface LiveMatch {
   score: Score;
   status: string; // kort statuskod: NS, 1H, HT, 2H, ET, P, FT, AET, PEN, PST...
   elapsed: number | null;
+  winner?: string | null; // vinnande lags namn (hanterar förlängning/straffar); null = oavgjort/ej klart
   events?: MatchEvent[];
 }
 

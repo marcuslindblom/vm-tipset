@@ -103,3 +103,21 @@ export function toSwedish(name: string): string {
   const canon = canonicalizeEnglish(name);
   return ENGLISH_TO_SWEDISH[normalize(canon)] ?? name;
 }
+
+/**
+ * Matcha två spelarnamn robust. API-Football returnerar förkortat ("L. Messi") medan
+ * Excel har fulla namn ("Lionel Messi"). Regel: samma efternamn + samma förnamnsinitial
+ * (eller exakt likhet). Tål diakriter/skiftläge via `normalize`.
+ */
+export function samePlayer(a: string, b: string): boolean {
+  const na = normalize(a);
+  const nb = normalize(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  const ta = na.split(" ");
+  const tb = nb.split(" ");
+  const surnameA = ta[ta.length - 1];
+  const surnameB = tb[tb.length - 1];
+  if (surnameA !== surnameB) return false;
+  return ta[0][0] === tb[0][0]; // samma efternamn + samma förnamnsinitial
+}

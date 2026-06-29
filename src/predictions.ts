@@ -2,7 +2,7 @@
 // uppslagsstrukturer som rättningsmotorn använder. Importeras av både Worker och skript.
 
 import raw from "./data/predictions.json";
-import type { Prediction } from "./scoring";
+import type { Prediction, KnockoutPrediction } from "./scoring";
 import type { LiveMatch } from "./types";
 import { teamMatchKey, canonicalizeEnglish, toSwedish } from "./teams";
 
@@ -23,7 +23,7 @@ export interface PredictionsData {
   kickoffs: string[]; // ISO UTC, alla avsparkstider (grupp + slutspel)
   fixtures: Record<string, FixtureInfo>;
   groupPredictions: Record<string, Record<string, [number, number]>>;
-  knockout: Record<string, unknown>;
+  knockout: Record<string, KnockoutPrediction>;
 }
 
 const data = raw as unknown as PredictionsData;
@@ -42,6 +42,11 @@ export function predictionsByMatch(): Map<string, Map<string, Prediction>> {
     m.set(key, inner);
   }
   return m;
+}
+
+/** Slutspels- + bonustips per spelare (lag per rond, mästare, skyttekung …). */
+export function knockoutPredictions(): Map<string, KnockoutPrediction> {
+  return new Map(Object.entries(data.knockout));
 }
 
 /** Samma nyckel som importen använde, härledd från en live-match. */

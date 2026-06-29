@@ -2,6 +2,7 @@
 // Poängsystem enligt VM-TIPSET 2026-PDF:en.
 
 import type { Score } from "./types";
+import { samePlayer } from "./teams";
 
 export interface Prediction {
   home: number;
@@ -206,7 +207,10 @@ export function scoreKnockout(
   }
 
   if (actual.champion && pred.champion === actual.champion) pts += weights.CHAMPION;
-  if (actual.topScorer && pred.topScorer === actual.topScorer) pts += bonus.topScorer;
+  // Skyttekung: Excel har fulla namn, API förkortar ("L. Messi") – matcha tolerant.
+  if (actual.topScorer && pred.topScorer && samePlayer(pred.topScorer, actual.topScorer)) {
+    pts += bonus.topScorer;
+  }
   // Antal mål bedöms separat – rätt siffra ger poäng även med fel skyttekung.
   if (actual.topScorerGoals != null && pred.topScorerGoals === actual.topScorerGoals) {
     pts += bonus.topScorerGoals;

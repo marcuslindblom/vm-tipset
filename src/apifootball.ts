@@ -22,6 +22,7 @@ function mapFixture(f: any): LiveMatch {
     score: { home: f.goals.home ?? 0, away: f.goals.away ?? 0 },
     status: f.fixture.status.short,
     elapsed: f.fixture.status.elapsed ?? null,
+    winner: f.teams.home?.winner ? f.teams.home.name : f.teams.away?.winner ? f.teams.away.name : null,
     events: (f.events ?? []).map((e: any) => ({
       type: e.type ?? "",
       detail: e.detail ?? "",
@@ -82,6 +83,24 @@ export class ApiFootball {
     const json = await this.get(`/fixtures?id=${id}`);
     const f = (json.response as any[])[0];
     return f ? mapFixture(f) : null;
+  }
+
+  /** Alla matcher i ligan/säsongen (ett anrop) – används för att härleda slutspelsträdet. */
+  async seasonFixtures(leagueId: number, season: number | string): Promise<LiveMatch[]> {
+    const json = await this.get(`/fixtures?league=${leagueId}&season=${season}`);
+    return (json.response as any[]).map(mapFixture);
+  }
+
+  /** Skytteligan – första posten är skyttekungen. */
+  async topScorers(leagueId: number, season: number | string): Promise<{ player: string; goals: number }[]> {
+    const json = await this.get(`/players/topscorers?league=${leagueId}&season=${season}`);
+    // `player.name` är "förnamnsinitial + vanligt efternamn" ("L. Messi"), vilket samePlayer
+    // matchar mot Excels fulla namn. (firstname/lastname ger juridiskt fullnamn med
+    // sammansatt efternamn, t.ex. "Messi Cuccittini" – sämre för matchning.)
+    return (json.response as any[]).map((r) => ({
+      player: r.player?.name ?? "",
+      goals: r.statistics?.[0]?.goals?.total ?? 0,
+    }));
   }
 
   /** Lagstatistik för en match (bollinnehav, skott, xG …). Hämtas vid halvtid/full tid. */

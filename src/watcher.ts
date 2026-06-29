@@ -8,7 +8,15 @@ import { isFinal } from "./types";
 import { ApiFootball } from "./apifootball";
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "./engine";
 import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scoring";
-import { players, predictionsByMatch, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
+import {
+  computeExtraPoints,
+  deriveKnockoutActual,
+  toKnockoutActual,
+  looksUnmatchedKnockout,
+  EMPTY_ACTUAL,
+  type StoredKnockoutActual,
+} from "./bonus";
+import { players, predictionsByMatch, knockoutPredictions, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
 import { toSwedish } from "./teams";
 import { buildGoalMessage, buildLeadChangeMessage, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
@@ -24,6 +32,60 @@ export class GoalWatcher extends DurableObject<Env> {
   }
   private leagueId(): number {
     return Number(this.env.WC_LEAGUE_ID);
+  }
+  private season(): string {
+    return this.env.SEASON;
+  }
+
+  // ── Bonuskanal: grupp-placering + slutspel + bonus ────────────────────────
+  /** Hämta slutspelsträdet + skytteligan från API:t och spara serialiserat i DO-storage. */
+  private async refreshKnockoutActual(api: ApiFootball): Promise<StoredKnockoutActual> {
+    const fx = await api.seasonFixtures(this.leagueId(), this.season());
+    // Larma om en slutspelsrond inte känns igen (annars faller poängen tyst bort).
+    const unmatched = [...new Set(fx.map((f) => f.round))].filter(looksUnmatchedKnockout);
+    if (unmatched.length) console.error("OMATCHADE slutspelsronder (ger 0 poäng!):", unmatched.join(" | "));
+    const derived = deriveKnockoutActual(fx);
+    try {
+      const scorers = await api.topScorers(this.leagueId(), this.season());
+      if (scorers[0]?.player) {
+        derived.topScorer = scorers[0].player;
+        derived.topScorerGoals = scorers[0].goals;
+        console.log(`Skyttekung enligt API: ${scorers[0].player} (${scorers[0].goals} mål)`);
+      }
+    } catch (e) {
+      console.error("topscorers-fel:", (e as Error).message);
+    }
+    await this.ctx.storage.put("knockoutActual", derived);
+    return derived;
+  }
+
+  /**
+   * extraPoints (grupp-placering + slutspel + bonus) per spelare. Läser lagrat
+   * slutspelsträd; med en API-klient seedas det vid första anropet och uppdateras när
+   * `forceRefresh` är satt (t.ex. när en slutspelsmatch rörts). Utan API-klient
+   * (injektionstest) används enbart lagrad/​tom data.
+   */
+  private async buildExtraPoints(
+    results: Record<string, MatchResult>,
+    api: ApiFootball | null,
+    forceRefresh = false,
+  ): Promise<Map<string, number>> {
+    let stored = await this.ctx.storage.get<StoredKnockoutActual>("knockoutActual");
+    if (api && (forceRefresh || !stored)) {
+      try {
+        stored = await this.refreshKnockoutActual(api);
+      } catch (e) {
+        console.error("knockout-refresh-fel:", (e as Error).message);
+      }
+    }
+    return computeExtraPoints({
+      players,
+      groupPreds: predictionsByMatch(),
+      fixtures,
+      results: scoreMap(results),
+      knockoutPreds: knockoutPredictions(),
+      knockoutActual: toKnockoutActual(stored ?? EMPTY_ACTUAL),
+    });
   }
 
   // ── Schemaläggning ────────────────────────────────────────────────────────
@@ -75,7 +137,8 @@ export class GoalWatcher extends DurableObject<Env> {
 
   async getStandings(): Promise<StandingRow[]> {
     const results = await this.loadResults();
-    return computeStandings(players, predictionsByMatch(), scoreMap(results));
+    const extra = await this.buildExtraPoints(results, this.api());
+    return computeStandings(players, predictionsByMatch(), scoreMap(results), extra);
   }
 
   async reset(): Promise<{ reset: true }> {
@@ -170,7 +233,8 @@ export class GoalWatcher extends DurableObject<Env> {
   private async answer(player: string, question: string): Promise<string> {
     const results = await this.loadResults();
     const preds = predictionsByMatch();
-    const standings = computeStandings(players, preds, scoreMap(results));
+    const extra = await this.buildExtraPoints(results, this.api());
+    const standings = computeStandings(players, preds, scoreMap(results), extra);
     const myMatches = await this.myMatchesSummary(player, preds, results);
     const standingsSummary = standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n");
 
@@ -296,7 +360,10 @@ export class GoalWatcher extends DurableObject<Env> {
 
     const preds = predictionsByMatch();
     const prevRanking = rankingMap(await this.loadRanking());
-    const standings = computeStandings(players, preds, scoreMap(diff.results), new Map(), prevRanking);
+    // Uppdatera slutspelsträdet när en slutspelsmatch (saknar grupp-fixture) just kickat/slutat.
+    const knockoutTouched = changes.some((c) => !fixtures[c.key] && (c.kind === "fulltime" || c.kind === "kickoff"));
+    const extra = await this.buildExtraPoints(diff.results, api, knockoutTouched);
+    const standings = computeStandings(players, preds, scoreMap(diff.results), extra, prevRanking);
     const leader = standings[0]?.player;
     const movers = standings
       .filter((r) => r.delta !== 0)
