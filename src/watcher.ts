@@ -27,6 +27,9 @@ import { postMessage } from "./slackapi";
 const KICKOFFS_MS = toKickoffMs(kickoffs);
 type Preds = ReturnType<typeof predictionsByMatch>;
 
+// Hur länge ett hämtat slutspelsträd återanvänds innan läsningar hämtar om det.
+const KO_TTL_MS = 10 * 60_000;
+
 export class GoalWatcher extends DurableObject<Env> {
   private api(): ApiFootball {
     return new ApiFootball(this.env.APISPORTS_HOST, this.env.APISPORTS_KEY);
@@ -57,14 +60,16 @@ export class GoalWatcher extends DurableObject<Env> {
       console.error("topscorers-fel:", (e as Error).message);
     }
     await this.ctx.storage.put("knockoutActual", derived);
+    await this.ctx.storage.put("knockoutActualAt", Date.now());
     return derived;
   }
 
   /**
    * extraPoints (grupp-placering + slutspel + bonus) per spelare. Läser lagrat
-   * slutspelsträd; med en API-klient seedas det vid första anropet och uppdateras när
-   * `forceRefresh` är satt (t.ex. när en slutspelsmatch rörts). Utan API-klient
-   * (injektionstest) används enbart lagrad/​tom data.
+   * slutspelsträd och uppdaterar det från API:t när `forceRefresh` är satt (t.ex. när en
+   * slutspelsmatch rörts), när det saknas, eller när det är äldre än KO_TTL_MS. TTL:n gör
+   * att läsningar (/standings, @arne) självläker efter en deploy/logikändring utan att
+   * anropa API:t på varje läsning. Utan API-klient (injektionstest) används lagrad/tom data.
    */
   private async buildExtraPoints(
     results: Record<string, MatchResult>,
@@ -72,7 +77,9 @@ export class GoalWatcher extends DurableObject<Env> {
     forceRefresh = false,
   ): Promise<Map<string, number>> {
     let stored = await this.ctx.storage.get<StoredKnockoutActual>("knockoutActual");
-    if (api && (forceRefresh || !stored)) {
+    const at = (await this.ctx.storage.get<number>("knockoutActualAt")) ?? 0;
+    const stale = Date.now() - at > KO_TTL_MS;
+    if (api && (forceRefresh || !stored || stale)) {
       try {
         stored = await this.refreshKnockoutActual(api);
       } catch (e) {
