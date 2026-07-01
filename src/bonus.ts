@@ -9,12 +9,13 @@ import {
   predictedGroupTable,
   scoreGroupPlacements,
   scoreKnockout,
+  KNOCKOUT_WEIGHTS,
   type KnockoutActual,
   type KnockoutPrediction,
   type KnockoutRound,
   type Prediction,
 } from "./scoring";
-import { canonicalizeEnglish } from "./teams";
+import { canonicalizeEnglish, toSwedish } from "./teams";
 
 // ── Slutspelsträd ur API-matcher ──────────────────────────────────────────────
 
@@ -51,12 +52,34 @@ export interface StoredKnockoutActual {
 
 export const EMPTY_ACTUAL: StoredKnockoutActual = { teamsByRound: {} };
 
+// Ett lag når nästa rond genom att VINNA sin match i nuvarande rond.
+const NEXT_ROUND: Partial<Record<KnockoutRound, KnockoutRound>> = {
+  R32: "R16",
+  R16: "QF",
+  QF: "SF",
+  SF: "FINAL",
+};
+
 /**
- * Härled faktiskt slutspelsträd ur alla säsongens matcher. Att ha *spelat* en rond =
- * att ha *nått* den (exakt vad scoreKnockout belönar), så bägge lagen i varje
- * slutspelsmatch räknas oavsett matchstatus – så fort en rond är lottad får tipsen
- * poäng. Bronsmatchen exkluderas så dess lag inte räknas som finalister. Mästare =
- * finalvinnaren när finalen är slutspelad.
+ * Vinnaren i en avgjord match. Föredrar API:ts winner-flagga (hanterar straffar), men
+ * faller tillbaka på ett avgörande resultat om flaggan släpar i feeden – så poängen inte
+ * väntar en pollcykel på att winner-fältet ska dyka upp. Oavgjort utan flagga → null.
+ */
+export function winnerOf(m: { winner?: string | null; score: Score; home: { name: string }; away: { name: string } }): string | null {
+  if (m.winner) return m.winner;
+  if (m.score.home > m.score.away) return m.home.name;
+  if (m.score.away > m.score.home) return m.away.name;
+  return null;
+}
+
+/**
+ * Härled faktiskt slutspelsträd ur alla säsongens matcher.
+ *
+ * R32 = de 32 lag som tog sig dit (spelar en R32-match). Övriga ronder härleds ur
+ * VINNARNA: att nå R16 = vinna sin R32-match, osv. Det ger per-match-timing – poängen
+ * landar exakt när matchen avgörs – och undviker buggen där ett lag som vunnit men vars
+ * nästa match ännu inte lottats tyst missar sin rond. Bronsmatchen exkluderas. Mästare =
+ * finalvinnaren.
  */
 export function deriveKnockoutActual(fixtures: LiveMatch[]): StoredKnockoutActual {
   const teamsByRound: Partial<Record<KnockoutRound, Set<string>>> = {};
@@ -64,15 +87,110 @@ export function deriveKnockoutActual(fixtures: LiveMatch[]): StoredKnockoutActua
   for (const fx of fixtures) {
     const round = matchRound(fx.round);
     if (!round || round === "BRONZE") continue;
-    const set = (teamsByRound[round] ??= new Set<string>());
-    set.add(canonicalizeEnglish(fx.home.name));
-    set.add(canonicalizeEnglish(fx.away.name));
-    if (round === "FINAL" && isFinal(fx.status) && fx.winner) champion = canonicalizeEnglish(fx.winner);
+    // Bas: lagen som spelar sextondelsfinal har nått R32.
+    if (round === "R32") {
+      const set = (teamsByRound.R32 ??= new Set<string>());
+      set.add(canonicalizeEnglish(fx.home.name));
+      set.add(canonicalizeEnglish(fx.away.name));
+    }
+    // Vinnaren går vidare till nästa rond (final-vinnaren blir mästare).
+    const winner = isFinal(fx.status) ? winnerOf(fx) : null;
+    if (winner) {
+      const w = canonicalizeEnglish(winner);
+      if (round === "FINAL") champion = w;
+      else {
+        const next = NEXT_ROUND[round];
+        if (next) (teamsByRound[next] ??= new Set<string>()).add(w);
+      }
+    }
   }
   const out: StoredKnockoutActual = { teamsByRound: {} };
   for (const [round, set] of Object.entries(teamsByRound)) out.teamsByRound[round as KnockoutRound] = [...set!];
   if (champion) out.champion = champion;
   return out;
+}
+
+// ── Slutspelsmatchens insats (för live-presentationen) ────────────────────────
+
+/** Målet "CHAMPION" = att vinna finalen (10 p); annars nästa rond. */
+export type ReachTarget = KnockoutRound | "CHAMPION";
+
+/** Vad matchens vinnare når + poängen för det. null för bronsmatch/gruppspel. */
+export function knockoutAdvance(roundStr: string): { target: ReachTarget; weight: number } | null {
+  const round = matchRound(roundStr);
+  if (!round || round === "BRONZE") return null;
+  if (round === "FINAL") return { target: "CHAMPION", weight: KNOCKOUT_WEIGHTS.CHAMPION };
+  const target = NEXT_ROUND[round];
+  return target ? { target, weight: KNOCKOUT_WEIGHTS[target] } : null;
+}
+
+/** Spelare som tippat `team` att nå `target` (rond eller VM-guld). */
+export function playersReaching(
+  team: string,
+  target: ReachTarget,
+  knockoutPreds: Map<string, KnockoutPrediction>,
+): string[] {
+  const canon = canonicalizeEnglish(team);
+  const out: string[] = [];
+  for (const [player, k] of knockoutPreds) {
+    const picks = target === "CHAMPION" ? [k.champion] : k.teamsByRound[target] ?? [];
+    if (picks.some((t) => canonicalizeEnglish(t) === canon)) out.push(player);
+  }
+  return out;
+}
+
+// Svensk benämning på ronden ett lag når genom att vinna sin match.
+const REACH_LABEL: Record<ReachTarget, string> = {
+  R32: "sextondelsfinalen",
+  R16: "åttondelsfinalen",
+  QF: "kvartsfinalen",
+  SF: "semifinalen",
+  FINAL: "finalen",
+  CHAMPION: "VM-guld",
+};
+
+export interface KnockoutCard {
+  koTips?: string; // avspark: vem tippade lagen vidare
+  koResult?: string; // full tid: vilket lag gick vidare + vilka som får rundpoängen
+}
+
+/**
+ * Bygg slutspelskortet för en match (ren funktion – testbar). En knockout-match saknar
+ * resultattips, så vid avspark visas vem som tippat lagen vidare och vid full tid vilket
+ * lag som gick vidare + vilka som får rundpoängen. Tomt för bronsmatch/okänd rond.
+ */
+export function knockoutCardText(args: {
+  kind: string;
+  roundStr: string;
+  homeEn: string;
+  awayEn: string;
+  score: Score;
+  winner: string | null;
+  knockoutPreds: Map<string, KnockoutPrediction>;
+}): KnockoutCard {
+  const adv = knockoutAdvance(args.roundStr);
+  if (!adv) return {};
+  const label = REACH_LABEL[adv.target];
+
+  if (args.kind === "kickoff") {
+    const row = (en: string) => {
+      const who = playersReaching(en, adv.target, args.knockoutPreds);
+      return `  *${toSwedish(en)}* → ${who.length ? who.join(", ") : "ingen"}`;
+    };
+    return {
+      koTips: `🎯 *Vidare till ${label} (${adv.weight} p) tippade:*\n${row(args.homeEn)}\n${row(args.awayEn)}`,
+    };
+  }
+  if (args.kind === "fulltime") {
+    const winner = winnerOf({ winner: args.winner, score: args.score, home: { name: args.homeEn }, away: { name: args.awayEn } });
+    if (!winner) return {};
+    const who = playersReaching(winner, adv.target, args.knockoutPreds);
+    const verb = adv.target === "CHAMPION" ? "är världsmästare" : `vidare till ${label}`;
+    return {
+      koResult: `🏆 *${toSwedish(winner)} ${verb}* → +${adv.weight} p: ${who.length ? who.join(", ") : "ingen tippade det"}`,
+    };
+  }
+  return {};
 }
 
 /** Stored-form (array) → KnockoutActual (Set) som scoreKnockout vill ha. */

@@ -16,6 +16,8 @@ export interface GoalView {
   team?: string; // lag för kort/straff
   context?: string; // t.ex. "Grupp F · VM 2026" (visas som liten etikett)
   allTips?: string; // allas tips för matchen (visas vid avspark)
+  koTips?: string; // slutspel: vem tippade lagen vidare (visas vid avspark)
+  koResult?: string; // slutspel: vilket lag gick vidare + vilka som fick poäng (visas vid full tid)
   statsText?: string; // matchfakta (visas vid halvtid/full tid)
   commentary?: string | null; // Arnes AI-referat (kan saknas)
 }
@@ -155,6 +157,14 @@ export function buildGoalMessage(
 
   if (g.kind === "kickoff" && g.allTips) {
     blocks.push({ type: "section", text: { type: "mrkdwn", text: `🎲 *Allas tips:*\n${g.allTips}` } });
+  }
+  // Slutspel: matchen saknar resultattips – visa istället vem som tippat lagen vidare.
+  if (g.kind === "kickoff" && g.koTips) {
+    blocks.push({ type: "section", text: { type: "mrkdwn", text: g.koTips } });
+  }
+
+  if (g.kind === "fulltime" && g.koResult) {
+    blocks.push({ type: "section", text: { type: "mrkdwn", text: g.koResult } });
   }
 
   if (g.kind === "fulltime" && opts.standings) {

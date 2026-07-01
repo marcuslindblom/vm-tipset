@@ -13,6 +13,7 @@ import {
   deriveKnockoutActual,
   toKnockoutActual,
   looksUnmatchedKnockout,
+  knockoutCardText,
   EMPTY_ACTUAL,
   type StoredKnockoutActual,
 } from "./bonus";
@@ -381,6 +382,7 @@ export class GoalWatcher extends DurableObject<Env> {
         this.contextFor(c, names, preds, leader, movers, statsText),
       );
       const f = fixtures[c.key];
+      const { koTips, koResult } = this.knockoutCard(c);
       const view: GoalView = {
         kind: c.kind,
         homeName: names.home,
@@ -392,6 +394,8 @@ export class GoalWatcher extends DurableObject<Env> {
         team: c.team ? toSwedish(c.team) : undefined,
         context: f ? `Grupp ${f.group} · VM 2026` : c.match.round ? `${c.match.round} · VM 2026` : "VM 2026",
         allTips: c.kind === "kickoff" ? tipsLine(c.key, preds) : undefined,
+        koTips,
+        koResult,
         statsText,
         commentary,
       };
@@ -504,6 +508,24 @@ export class GoalWatcher extends DurableObject<Env> {
       console.error("stats-fel:", (e as Error).message);
       return undefined;
     }
+  }
+
+  /**
+   * Slutspelskort: en knockout-match saknar resultattips, så vid avspark visar vi vem
+   * som tippat lagen vidare, och vid full tid vilket lag som gick vidare + vilka som får
+   * rundpoängen. Returnerar tomt för gruppmatcher och bronsmatchen.
+   */
+  private knockoutCard(c: Change): { koTips?: string; koResult?: string } {
+    if (fixtures[c.key]) return {}; // gruppmatch – hanteras av allTips/matchPoints
+    return knockoutCardText({
+      kind: c.kind,
+      roundStr: c.match.round,
+      homeEn: c.match.home.name,
+      awayEn: c.match.away.name,
+      score: c.match.score,
+      winner: c.match.winner ?? null,
+      knockoutPreds: knockoutPredictions(),
+    });
   }
 
   /** Poäng varje spelare fick i en enskild match (för full tid-kortet). */

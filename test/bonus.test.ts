@@ -5,13 +5,21 @@ import {
   computeActualGroupTables,
   computeExtraPoints,
   toKnockoutActual,
+  knockoutCardText,
 } from "../src/bonus.ts";
-import { scoreKnockout, type KnockoutPrediction } from "../src/scoring.ts";
+import { scoreKnockout, computeStandings, type KnockoutPrediction, type Prediction } from "../src/scoring.ts";
 import type { FixtureInfo } from "../src/predictions.ts";
 import type { LiveMatch, Score } from "../src/types.ts";
 
 // ── Hjälpare ──────────────────────────────────────────────────────────────────
-function ko(round: string, home: string, away: string, status = "NS", winner: string | null = null): LiveMatch {
+function ko(
+  round: string,
+  home: string,
+  away: string,
+  status = "NS",
+  winner: string | null = null,
+  score: Score = { home: 0, away: 0 },
+): LiveMatch {
   return {
     fixtureId: 0,
     leagueId: 1,
@@ -19,11 +27,15 @@ function ko(round: string, home: string, away: string, status = "NS", winner: st
     date: "",
     home: { id: 0, name: home },
     away: { id: 0, name: away },
-    score: { home: 0, away: 0 },
+    score,
     status,
     elapsed: null,
     winner,
   };
+}
+
+function koPred(over: Partial<KnockoutPrediction["teamsByRound"]>, champion = ""): KnockoutPrediction {
+  return { teamsByRound: { ...emptyKo(), ...over }, champion, topScorer: "", topScorerGoals: 0, totalGoals: 0 };
 }
 
 function fi(home: string, away: string, group: string): FixtureInfo {
@@ -32,31 +44,35 @@ function fi(home: string, away: string, group: string): FixtureInfo {
 
 const emptyKo = (): KnockoutPrediction["teamsByRound"] => ({ R32: [], R16: [], QF: [], SF: [], FINAL: [], CHAMPION: [] });
 
-// ── deriveKnockoutActual ──────────────────────────────────────────────────────
-test("deriveKnockoutActual: rätt rond-mappning + namnkanonisering", () => {
+// ── deriveKnockoutActual (vinnarbaserad: nå nästa rond = vinna sin match) ──────
+test("deriveKnockoutActual: R32 = deltagare, R16 = R32-vinnare (+ namnkanonisering)", () => {
   const a = deriveKnockoutActual([
-    ko("Round of 16", "Spain", "Croatia"),
-    ko("Round of 16", "Germany", "Czechia"), // alias → Czech Republic
-    ko("Quarter-finals", "Spain", "Germany"),
-    ko("Semi-finals", "Spain", "France"),
+    ko("Round of 32", "Spain", "Croatia", "FT", "Spain"),
+    ko("Round of 32", "Germany", "Czechia", "PEN", "Czechia"), // alias → Czech Republic
+    ko("Round of 32", "Brazil", "Japan", "NS", null), // ej spelad än
   ]);
-  assert.deepEqual(new Set(a.teamsByRound.R16), new Set(["Spain", "Croatia", "Germany", "Czech Republic"]));
-  assert.deepEqual(new Set(a.teamsByRound.QF), new Set(["Spain", "Germany"]));
-  assert.deepEqual(new Set(a.teamsByRound.SF), new Set(["Spain", "France"]));
+  // Alla som SPELAR R32 har nått R32.
+  assert.deepEqual(
+    new Set(a.teamsByRound.R32),
+    new Set(["Spain", "Croatia", "Germany", "Czech Republic", "Brazil", "Japan"]),
+  );
+  // R16 = vinnarna (även en vunnen-men-ej-lottad nästa match räknas direkt).
+  assert.deepEqual(new Set(a.teamsByRound.R16), new Set(["Spain", "Czech Republic"]));
 });
 
-test("deriveKnockoutActual: bronsmatchen exkluderas, mästare = finalvinnaren", () => {
+test("deriveKnockoutActual: SF-vinnare → final, finalvinnare → mästare, brons exkluderas", () => {
   const a = deriveKnockoutActual([
-    ko("3rd Place Final", "Germany", "France", "FT", "Germany"),
+    ko("Semi-finals", "Spain", "France", "FT", "Spain"),
+    ko("Semi-finals", "Brazil", "Argentina", "FT", "Brazil"),
+    ko("3rd Place Final", "France", "Argentina", "FT", "France"), // brons – ingen rond
     ko("Final", "Spain", "Brazil", "FT", "Spain"),
   ]);
-  assert.deepEqual(new Set(a.teamsByRound.FINAL), new Set(["Spain", "Brazil"]));
+  assert.deepEqual(new Set(a.teamsByRound.FINAL), new Set(["Spain", "Brazil"])); // SF-vinnarna
   assert.equal(a.champion, "Spain");
-  // Germany/France (bronsmatch) ska INTE räknas som finalister.
-  assert.ok(!a.teamsByRound.FINAL!.includes("Germany"));
+  assert.ok(!(a.teamsByRound.FINAL ?? []).includes("France")); // bronslag ej finalist
 });
 
-test("deriveKnockoutActual: champion sätts inte förrän finalen är slutspelad", () => {
+test("deriveKnockoutActual: champion sätts inte förrän finalen är avgjord", () => {
   const a = deriveKnockoutActual([ko("Final", "Spain", "Brazil", "NS", null)]);
   assert.equal(a.champion, undefined);
 });
@@ -110,7 +126,8 @@ test("computeExtraPoints: summerar grupp-placering + slutspel per spelare", () =
     ["Bo", { teamsByRound: emptyKo(), champion: "", topScorer: "", topScorerGoals: 0, totalGoals: 0 }],
   ]);
 
-  const actual = toKnockoutActual(deriveKnockoutActual([ko("Round of 16", "Spain", "Croatia")]));
+  // Spain vinner sin R32-match → har nått R16.
+  const actual = toKnockoutActual(deriveKnockoutActual([ko("Round of 32", "Spain", "Italy", "FT", "Spain")]));
 
   const extra = computeExtraPoints({
     players: ["Anna", "Bo"],
@@ -125,6 +142,95 @@ test("computeExtraPoints: summerar grupp-placering + slutspel per spelare", () =
   assert.equal(extra.get("Anna"), 5);
   // Bo: fel grupptabell (0) + inga slutspelstips (0) → utelämnas helt.
   assert.equal(extra.has("Bo"), false);
+});
+
+// ── Vinnare ur avgörande resultat om winner-fältet släpar i feeden ────────────
+test("deriveKnockoutActual: härleder vinnare ur avgörande resultat om winner-fältet saknas", () => {
+  const a = deriveKnockoutActual([ko("Round of 32", "Spain", "Italy", "FT", null, { home: 2, away: 1 })]);
+  assert.deepEqual(new Set(a.teamsByRound.R16), new Set(["Spain"]));
+});
+
+test("deriveKnockoutActual: oavgjort utan winner-fält (väntar straffar) → ingen går vidare än", () => {
+  const a = deriveKnockoutActual([ko("Round of 32", "Spain", "Italy", "PEN", null, { home: 1, away: 1 })]);
+  assert.equal(a.teamsByRound.R16, undefined);
+});
+
+// ── Presentationskortet (knockoutCardText) ────────────────────────────────────
+test("knockoutCardText: avspark listar vem som tippat lagen vidare + rätt rond/poäng", () => {
+  const preds = new Map([
+    ["Anna", koPred({ R16: ["Spain"] })],
+    ["Bo", koPred({ R16: ["Italy"] })],
+  ]);
+  const card = knockoutCardText({
+    kind: "kickoff", roundStr: "Round of 32", homeEn: "Spain", awayEn: "Italy",
+    score: { home: 0, away: 0 }, winner: null, knockoutPreds: preds,
+  });
+  assert.match(card.koTips!, /Vidare till åttondelsfinalen \(2 p\)/);
+  assert.match(card.koTips!, /→ Anna/); // Spain-raden
+  assert.match(card.koTips!, /→ Bo/); // Italy-raden
+  assert.equal(card.koResult, undefined);
+});
+
+test("knockoutCardText: full tid – vinnaren går vidare, rätt tippare får rundpoängen", () => {
+  const preds = new Map([
+    ["Anna", koPred({ R16: ["Spain"] })],
+    ["Bo", koPred({ R16: ["Italy"] })],
+  ]);
+  const card = knockoutCardText({
+    kind: "fulltime", roundStr: "Round of 32", homeEn: "Spain", awayEn: "Italy",
+    score: { home: 2, away: 1 }, winner: "Spain", knockoutPreds: preds,
+  });
+  assert.match(card.koResult!, /vidare till åttondelsfinalen/);
+  assert.match(card.koResult!, /\+2 p: Anna/);
+  assert.ok(!card.koResult!.includes("Bo")); // Italy-tipparen får inget
+  assert.equal(card.koTips, undefined);
+});
+
+test("knockoutCardText: finalvinnare blir världsmästare (+10)", () => {
+  const preds = new Map([
+    ["Anna", koPred({}, "Spain")],
+    ["Bo", koPred({}, "Brazil")],
+  ]);
+  const card = knockoutCardText({
+    kind: "fulltime", roundStr: "Final", homeEn: "Spain", awayEn: "Brazil",
+    score: { home: 1, away: 0 }, winner: "Spain", knockoutPreds: preds,
+  });
+  assert.match(card.koResult!, /är världsmästare/);
+  assert.match(card.koResult!, /\+10 p: Anna/);
+});
+
+test("knockoutCardText: skräll – ingen tippade vinnaren vidare", () => {
+  const preds = new Map([["Anna", koPred({ R16: ["Spain"] })]]);
+  const card = knockoutCardText({
+    kind: "fulltime", roundStr: "Round of 32", homeEn: "Italy", awayEn: "Paraguay",
+    score: { home: 1, away: 1 }, winner: "Paraguay", knockoutPreds: preds,
+  });
+  assert.match(card.koResult!, /Paraguay vidare.*ingen tippade det/);
+});
+
+test("knockoutCardText: bronsmatch ger inget kort", () => {
+  const card = knockoutCardText({
+    kind: "fulltime", roundStr: "3rd Place Final", homeEn: "France", awayEn: "Argentina",
+    score: { home: 1, away: 0 }, winner: "France", knockoutPreds: new Map(),
+  });
+  assert.deepEqual(card, {});
+});
+
+// ── End-to-end: computeStandings = gruppmatchpoäng + extraPoints ───────────────
+test("end-to-end: totalen = gruppmatchpoäng + grupp-placering + slutspel", () => {
+  const groupPreds = new Map<string, Map<string, Prediction>>();
+  for (const [key, s] of GROUP_A_RES) groupPreds.set(key, new Map([["Anna", { home: s.home, away: s.away }]])); // exakt
+
+  const knockoutPreds = new Map([["Anna", koPred({ R16: ["Spain"] })]]);
+  const actual = toKnockoutActual(deriveKnockoutActual([ko("Round of 32", "Spain", "Italy", "FT", "Spain")]));
+  const extra = computeExtraPoints({
+    players: ["Anna"], groupPreds, fixtures: GROUP_A_FIX, results: new Map(GROUP_A_RES), knockoutPreds, knockoutActual: actual,
+  });
+
+  const anna = computeStandings(["Anna"], groupPreds, new Map(GROUP_A_RES), extra)[0];
+  assert.equal(anna.groupPoints, 24); // 6 exakta × 4
+  assert.equal(anna.bonusPoints, 5); // grupp-placering (2+1) + R16 Spain (2)
+  assert.equal(anna.points, 29);
 });
 
 // ── Skyttekung: tolerant namnmatchning (diakriter, skiftläge, förkortning) ─────
