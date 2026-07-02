@@ -14,8 +14,11 @@ import {
   toKnockoutActual,
   looksUnmatchedKnockout,
   knockoutCardText,
+  knockoutScheduleText,
+  matchRound,
   EMPTY_ACTUAL,
   type StoredKnockoutActual,
+  type KoFixture,
 } from "./bonus";
 import { players, predictionsByMatch, knockoutPredictions, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
@@ -60,8 +63,19 @@ export class GoalWatcher extends DurableObject<Env> {
       console.error("topscorers-fel:", (e as Error).message);
     }
     await this.ctx.storage.put("knockoutActual", derived);
+    // Slutspelsschemat (för @arnes "nästa match") – lagras vid samma tillfälle.
+    const koFixtures: KoFixture[] = fx
+      .filter((f) => matchRound(f.round))
+      .map((f) => ({ round: f.round, home: f.home.name, away: f.away.name, kickoff: f.date, status: f.status }));
+    await this.ctx.storage.put("koFixtures", koFixtures);
     await this.ctx.storage.put("knockoutActualAt", Date.now());
     return derived;
+  }
+
+  /** Slutspelsschemat som läsbar PÅGÅR/NÄSTA-text för @arne (null tills det finns). */
+  private async koScheduleText(): Promise<string | null> {
+    const koFx = (await this.ctx.storage.get<KoFixture[]>("koFixtures")) ?? [];
+    return knockoutScheduleText(koFx, Date.now());
   }
 
   /**
@@ -78,8 +92,9 @@ export class GoalWatcher extends DurableObject<Env> {
   ): Promise<Map<string, number>> {
     let stored = await this.ctx.storage.get<StoredKnockoutActual>("knockoutActual");
     const at = (await this.ctx.storage.get<number>("knockoutActualAt")) ?? 0;
+    const hasSchedule = Boolean(await this.ctx.storage.get<KoFixture[]>("koFixtures"));
     const stale = Date.now() - at > KO_TTL_MS;
-    if (api && (forceRefresh || !stored || stale)) {
+    if (api && (forceRefresh || !stored || !hasSchedule || stale)) {
       try {
         stored = await this.refreshKnockoutActual(api);
       } catch (e) {
@@ -283,9 +298,7 @@ export class GoalWatcher extends DurableObject<Env> {
       const f = fixtures[nextKey];
       rows.push({ key: nextKey, label: `${f.homeSv}–${f.awaySv} (NÄSTA)` });
     }
-    if (!rows.length) return "Inga pågående eller kommande matcher just nu.";
-
-    return rows
+    const groupText = rows
       .map(({ key, label }) => {
         const byPlayer = preds.get(key);
         const tips = players
@@ -298,6 +311,10 @@ export class GoalWatcher extends DurableObject<Env> {
         return `${label}: ${tips}`;
       })
       .join("\n");
+    // Slutspelsmatcher finns inte i `fixtures` – lägg till pågående/nästa ur schemat.
+    const koText = await this.koScheduleText();
+    const combined = [groupText, koText].filter(Boolean).join("\n");
+    return combined || "Inga pågående eller kommande matcher just nu.";
   }
 
   private async myMatchesSummary(
@@ -328,7 +345,12 @@ export class GoalWatcher extends DurableObject<Env> {
       const when = new Date(next.t).toISOString().slice(0, 16).replace("T", " ");
       lines.push(`NÄSTA: ${next.f.homeSv}–${next.f.awaySv}, ditt tips ${next.ph}-${next.pa} (avspark ${when} UTC)`);
     }
-    if (!lines.length) lines.push("Inga pågående eller kommande matcher just nu.");
+    if (!lines.length) {
+      // Slutspelet: inga per-match-tips finns, men visa ändå pågående/nästa slutspelsmatch.
+      const koText = await this.koScheduleText();
+      if (koText) lines.push("Slutspelet pågår – inga individuella matchtips kvar.", koText);
+      else lines.push("Inga pågående eller kommande matcher just nu.");
+    }
     return lines.join("\n");
   }
 

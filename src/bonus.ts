@@ -3,7 +3,7 @@
 // spelare till den `extraPoints`-map som computeStandings adderar ovanpå gruppmatchpoängen.
 
 import type { LiveMatch, Score } from "./types";
-import { isFinal } from "./types";
+import { isFinal, isLive } from "./types";
 import type { FixtureInfo } from "./predictions";
 import {
   predictedGroupTable,
@@ -152,6 +152,50 @@ const REACH_LABEL: Record<ReachTarget, string> = {
 export interface KnockoutCard {
   koTips?: string; // avspark: vem tippade lagen vidare
   koResult?: string; // full tid: vilket lag gick vidare + vilka som får rundpoängen
+}
+
+// Matchens EGEN rond i obestämd form ("sextondelsfinal") – skilt från REACH_LABEL
+// som är ronden man NÅR genom att vinna (bestämd form, "åttondelsfinalen").
+export function roundNameSv(roundStr: string): string {
+  switch (matchRound(roundStr)) {
+    case "R32": return "sextondelsfinal";
+    case "R16": return "åttondelsfinal";
+    case "QF": return "kvartsfinal";
+    case "SF": return "semifinal";
+    case "FINAL": return "final";
+    case "BRONZE": return "bronsmatch";
+    default: return "";
+  }
+}
+
+/** Slutspelsmatch i schemat (lagras för att @arne ska kunna svara på "nästa match"). */
+export interface KoFixture {
+  round: string;
+  home: string;
+  away: string;
+  kickoff: string; // ISO
+  status: string;
+}
+
+/**
+ * Bygg schematexten för slutspelet (ren funktion): PÅGÅR-rader för live-matcher och en
+ * NÄSTA-rad för närmaste kommande match. Speglar gruppspelets radform (utan resultattips,
+ * som inte finns i slutspelet). Placeholder-lag (tomma namn) filtreras bort. null = inget.
+ */
+export function knockoutScheduleText(koFixtures: KoFixture[], nowMs: number): string | null {
+  const real = koFixtures.filter((f) => f.home && f.away);
+  const lines: string[] = [];
+  for (const f of real.filter((f) => isLive(f.status))) {
+    lines.push(`PÅGÅR: ${toSwedish(f.home)}–${toSwedish(f.away)} (${roundNameSv(f.round)})`);
+  }
+  const next = real
+    .filter((f) => !isFinal(f.status) && !isLive(f.status) && Date.parse(f.kickoff) > nowMs)
+    .sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff))[0];
+  if (next) {
+    const when = new Date(next.kickoff).toISOString().slice(0, 16).replace("T", " ");
+    lines.push(`NÄSTA: ${toSwedish(next.home)}–${toSwedish(next.away)} (${roundNameSv(next.round)}, avspark ${when} UTC)`);
+  }
+  return lines.length ? lines.join("\n") : null;
 }
 
 /**

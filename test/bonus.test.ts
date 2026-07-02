@@ -6,6 +6,9 @@ import {
   computeExtraPoints,
   toKnockoutActual,
   knockoutCardText,
+  knockoutScheduleText,
+  roundNameSv,
+  type KoFixture,
 } from "../src/bonus.ts";
 import { scoreKnockout, computeStandings, type KnockoutPrediction, type Prediction } from "../src/scoring.ts";
 import type { FixtureInfo } from "../src/predictions.ts";
@@ -231,6 +234,36 @@ test("end-to-end: totalen = gruppmatchpoäng + grupp-placering + slutspel", () =
   assert.equal(anna.groupPoints, 24); // 6 exakta × 4
   assert.equal(anna.bonusPoints, 5); // grupp-placering (2+1) + R16 Spain (2)
   assert.equal(anna.points, 29);
+});
+
+// ── Slutspelsschema för @arne ("nästa match") ─────────────────────────────────
+test("roundNameSv: matchens egen rond i obestämd form", () => {
+  assert.equal(roundNameSv("Round of 32"), "sextondelsfinal");
+  assert.equal(roundNameSv("Quarter-finals"), "kvartsfinal");
+  assert.equal(roundNameSv("Final"), "final");
+  assert.equal(roundNameSv("Group Stage - 1"), ""); // gruppspel → tomt
+});
+
+test("knockoutScheduleText: NÄSTA = närmaste kommande, PÅGÅR för live, filtrerar spelade/placeholder", () => {
+  const now = Date.parse("2026-07-02T12:00:00Z");
+  const fx: KoFixture[] = [
+    { round: "Round of 32", home: "Brazil", away: "Japan", kickoff: "2026-07-01T20:00:00Z", status: "FT" }, // spelad
+    { round: "Round of 16", home: "France", away: "Sweden", kickoff: "2026-07-02T20:00:00Z", status: "NS" }, // senare
+    { round: "Round of 16", home: "Spain", away: "Italy", kickoff: "2026-07-02T18:00:00Z", status: "NS" }, // NÄSTA
+    { round: "Round of 32", home: "Canada", away: "Morocco", kickoff: "2026-07-02T11:00:00Z", status: "2H" }, // live
+    { round: "Round of 16", home: "", away: "", kickoff: "2026-07-02T14:00:00Z", status: "NS" }, // placeholder
+  ];
+  const text = knockoutScheduleText(fx, now)!;
+  assert.match(text, /PÅGÅR: Kanada/); // live-match
+  assert.match(text, /NÄSTA: Spanien/); // närmaste kommande (18:00), inte placeholder (14:00) eller France (20:00)
+  assert.match(text, /åttondelsfinal, avspark 2026-07-02 18:00 UTC/);
+  assert.ok(!/Frankrike|Sverige/.test(text)); // den senare R16-matchen ska inte vara NÄSTA
+});
+
+test("knockoutScheduleText: null när inget pågår eller väntar", () => {
+  const now = Date.parse("2026-07-20T12:00:00Z");
+  const fx: KoFixture[] = [{ round: "Final", home: "Spain", away: "Brazil", kickoff: "2026-07-19T20:00:00Z", status: "FT" }];
+  assert.equal(knockoutScheduleText(fx, now), null);
 });
 
 // ── Skyttekung: tolerant namnmatchning (diakriter, skiftläge, förkortning) ─────
