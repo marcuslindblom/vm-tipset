@@ -52,15 +52,20 @@ export class GoalWatcher extends DurableObject<Env> {
     const unmatched = [...new Set(fx.map((f) => f.round))].filter(looksUnmatchedKnockout);
     if (unmatched.length) console.error("OMATCHADE slutspelsronder (ger 0 poäng!):", unmatched.join(" | "));
     const derived = deriveKnockoutActual(fx);
-    try {
-      const scorers = await api.topScorers(this.leagueId(), this.season());
-      if (scorers[0]?.player) {
-        derived.topScorer = scorers[0].player;
-        derived.topScorerGoals = scorers[0].goals;
-        console.log(`Skyttekung enligt API: ${scorers[0].player} (${scorers[0].goals} mål)`);
+    // Skyttekungen avgörs först vid turneringens slut (finalen spelad ⇒ champion satt).
+    // Att räkna den live mot nuvarande skytteligaledare gör att bonusen svänger upp OCH ner
+    // när ledaren/målantalet ändras – poäng ska bara kunna öka. Håll den osatt tills slutet.
+    if (derived.champion) {
+      try {
+        const scorers = await api.topScorers(this.leagueId(), this.season());
+        if (scorers[0]?.player) {
+          derived.topScorer = scorers[0].player;
+          derived.topScorerGoals = scorers[0].goals;
+          console.log(`Skyttekung (slutgiltig): ${scorers[0].player} (${scorers[0].goals} mål)`);
+        }
+      } catch (e) {
+        console.error("topscorers-fel:", (e as Error).message);
       }
-    } catch (e) {
-      console.error("topscorers-fel:", (e as Error).message);
     }
     await this.ctx.storage.put("knockoutActual", derived);
     // Slutspelsschemat (för @arnes "nästa match") – lagras vid samma tillfälle.
