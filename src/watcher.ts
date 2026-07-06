@@ -395,8 +395,9 @@ export class GoalWatcher extends DurableObject<Env> {
 
     const preds = predictionsByMatch();
     const prevRanking = rankingMap(await this.loadRanking());
-    // Uppdatera slutspelsträdet när en slutspelsmatch (saknar grupp-fixture) just kickat/slutat.
-    const knockoutTouched = changes.some((c) => !fixtures[c.key] && (c.kind === "fulltime" || c.kind === "kickoff"));
+    // Slutspelsträdet ändras bara när ett lag VINNER (full tid) – aldrig vid avspark.
+    // Att refresha vid avspark ytar bara en eftersläpande kredit i fel ögonblick.
+    const knockoutTouched = changes.some((c) => !fixtures[c.key] && c.kind === "fulltime");
     const extra = await this.buildExtraPoints(diff.results, api, knockoutTouched);
     const standings = computeStandings(players, preds, scoreMap(diff.results), extra, prevRanking);
     const leader = standings[0]?.player;
@@ -411,9 +412,11 @@ export class GoalWatcher extends DurableObject<Env> {
       const names = displayNames(c.key, c.match);
       // Vid halvtid/full tid: hämta lagstatistik så Arne kan krydda med en siffra.
       const statsText = await this.statsTextFor(c, api, names);
+      // Vid avspark har inget flyttats i tabellen – låt inte Arne berätta om rörelse.
+      const moversForC = c.kind === "kickoff" ? "" : movers;
       const commentary = await generateCommentary(
         this.env,
-        this.contextFor(c, names, preds, leader, movers, statsText),
+        this.contextFor(c, names, preds, leader, moversForC, statsText),
       );
       const f = fixtures[c.key];
       const { koTips, koResult } = this.knockoutCard(c);
@@ -443,8 +446,11 @@ export class GoalWatcher extends DurableObject<Env> {
       }
     }
 
-    // Ledarbyte i tipset: egen notis när någon ny petar sig upp på förstaplatsen.
-    await this.maybeAnnounceLeadChange(standings, changes);
+    // Ledarbyte: bara när något faktiskt hänt (mål/full tid) – aldrig enbart vid avspark,
+    // då inga poäng ändras (en avspark kan på sin höjd yta en eftersläpande kredit via refresh).
+    if (changes.some((c) => c.kind !== "kickoff")) {
+      await this.maybeAnnounceLeadChange(standings, changes);
+    }
 
     // Uppdatera "senast visade" placering bara när tabellen faktiskt visats (vid FT),
     // så pilarna vid full tid speglar rörelsen sedan förra full tid.
