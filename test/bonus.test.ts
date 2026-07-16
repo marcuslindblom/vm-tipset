@@ -8,11 +8,12 @@ import {
   knockoutCardText,
   knockoutScheduleText,
   roundNameSv,
+  bracketFromResults,
   type KoFixture,
 } from "../src/bonus.ts";
 import { scoreKnockout, computeStandings, type KnockoutPrediction, type Prediction } from "../src/scoring.ts";
 import type { FixtureInfo } from "../src/predictions.ts";
-import type { LiveMatch, Score } from "../src/types.ts";
+import type { LiveMatch, MatchResult, Score } from "../src/types.ts";
 
 // ── Hjälpare ──────────────────────────────────────────────────────────────────
 function ko(
@@ -78,6 +79,21 @@ test("deriveKnockoutActual: SF-vinnare → final, finalvinnare → mästare, bro
 test("deriveKnockoutActual: champion sätts inte förrän finalen är avgjord", () => {
   const a = deriveKnockoutActual([ko("Final", "Spain", "Brazil", "NS", null)]);
   assert.equal(a.champion, undefined);
+});
+
+test("bracketFromResults: härleder trädet ur lagrade resultat, skippar gruppmatcher (ingen rond)", () => {
+  const mr = (o: Partial<MatchResult> & Pick<MatchResult, "home" | "away">): MatchResult => ({
+    fixtureId: 0, score: { home: 0, away: 0 }, status: "FT", final: true, ...o,
+  });
+  const results: Record<string, MatchResult> = {
+    g1: mr({ home: "Brazil", away: "Sweden" }), // gruppmatch – ingen rond
+    k1: mr({ home: "Spain", away: "Croatia", round: "Round of 32", winner: "Spain" }),
+    k2: mr({ home: "Spain", away: "Germany", round: "Round of 16", winner: "Spain" }),
+  };
+  const a = bracketFromResults(results);
+  assert.deepEqual(new Set(a.teamsByRound.R32), new Set(["Spain", "Croatia"])); // R32-deltagare, gruppmatch ej med
+  assert.deepEqual(new Set(a.teamsByRound.R16), new Set(["Spain"])); // R32-vinnare
+  assert.deepEqual(new Set(a.teamsByRound.QF), new Set(["Spain"])); // R16-vinnare
 });
 
 // ── computeActualGroupTables ──────────────────────────────────────────────────

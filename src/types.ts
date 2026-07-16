@@ -73,6 +73,8 @@ export interface MatchResult {
   score: Score;
   status: string;
   final: boolean;
+  round?: string; // API-rond, t.ex. "Round of 16" – låter slutspelsträdet härledas utan säsongsanrop
+  winner?: string | null; // vinnande lags namn (hanterar förlängning/straffar)
 }
 
 export const FINAL_STATUSES = new Set(["FT", "AET", "PEN", "WO", "AWD"]);

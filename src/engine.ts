@@ -36,20 +36,30 @@ export interface DiffResult {
 }
 
 function toResult(m: LiveMatch, final: boolean): MatchResult {
-  return { fixtureId: m.fixtureId, home: m.home.name, away: m.away.name, score: m.score, status: m.status, final };
+  return {
+    fixtureId: m.fixtureId,
+    home: m.home.name,
+    away: m.away.name,
+    score: m.score,
+    status: m.status,
+    final,
+    round: m.round,
+    winner: m.winner ?? null,
+  };
 }
 
 export function resultToLive(r: MatchResult): LiveMatch {
   return {
     fixtureId: r.fixtureId,
     leagueId: 0,
-    round: "",
+    round: r.round ?? "",
     date: "",
     home: { id: 0, name: r.home },
     away: { id: 0, name: r.away },
     score: r.score,
     status: r.status,
     elapsed: null,
+    winner: r.winner ?? null,
   };
 }
 

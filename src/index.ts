@@ -103,6 +103,20 @@ export default {
         if (req.method !== "POST") return json({ error: "POST krävs" }, 405);
         return json(await w.reset());
 
+      case "/backfill-knockout":
+        // Engångs: hämtar rond+vinnare för redan spelade slutspelsmatcher via fixtureById.
+        if (req.method !== "POST") return json({ error: "POST krävs" }, 405);
+        return json(await w.backfillKnockout());
+
+      case "/set-topscorer": {
+        // Manuell skyttekung (Free-planen saknar skytteliga): ?player=...&goals=N
+        if (req.method !== "POST") return json({ error: "POST krävs" }, 405);
+        const player = url.searchParams.get("player");
+        const goals = Number(url.searchParams.get("goals"));
+        if (!player || Number.isNaN(goals)) return json({ error: "player och goals krävs" }, 400);
+        return json(await w.setTopScorer(player, goals));
+      }
+
       case "/test/commentary": {
         // Genererar ETT exempel-referat och returnerar det (postar inget till Slack).
         const started = Date.now();

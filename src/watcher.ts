@@ -10,14 +10,10 @@ import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "./engi
 import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scoring";
 import {
   computeExtraPoints,
-  deriveKnockoutActual,
+  bracketFromResults,
   toKnockoutActual,
-  looksUnmatchedKnockout,
   knockoutCardText,
   knockoutScheduleText,
-  matchRound,
-  EMPTY_ACTUAL,
-  type StoredKnockoutActual,
   type KoFixture,
 } from "./bonus";
 import { players, predictionsByMatch, knockoutPredictions, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
@@ -30,9 +26,6 @@ import { postMessage } from "./slackapi";
 const KICKOFFS_MS = toKickoffMs(kickoffs);
 type Preds = ReturnType<typeof predictionsByMatch>;
 
-// Hur länge ett hämtat slutspelsträd återanvänds innan läsningar hämtar om det.
-const KO_TTL_MS = 10 * 60_000;
-
 export class GoalWatcher extends DurableObject<Env> {
   private api(): ApiFootball {
     return new ApiFootball(this.env.APISPORTS_HOST, this.env.APISPORTS_KEY);
@@ -40,43 +33,7 @@ export class GoalWatcher extends DurableObject<Env> {
   private leagueId(): number {
     return Number(this.env.WC_LEAGUE_ID);
   }
-  private season(): string {
-    return this.env.SEASON;
-  }
-
   // ── Bonuskanal: grupp-placering + slutspel + bonus ────────────────────────
-  /** Hämta slutspelsträdet + skytteligan från API:t och spara serialiserat i DO-storage. */
-  private async refreshKnockoutActual(api: ApiFootball): Promise<StoredKnockoutActual> {
-    const fx = await api.seasonFixtures(this.leagueId(), this.season());
-    // Larma om en slutspelsrond inte känns igen (annars faller poängen tyst bort).
-    const unmatched = [...new Set(fx.map((f) => f.round))].filter(looksUnmatchedKnockout);
-    if (unmatched.length) console.error("OMATCHADE slutspelsronder (ger 0 poäng!):", unmatched.join(" | "));
-    const derived = deriveKnockoutActual(fx);
-    // Skyttekungen avgörs först vid turneringens slut (finalen spelad ⇒ champion satt).
-    // Att räkna den live mot nuvarande skytteligaledare gör att bonusen svänger upp OCH ner
-    // när ledaren/målantalet ändras – poäng ska bara kunna öka. Håll den osatt tills slutet.
-    if (derived.champion) {
-      try {
-        const scorers = await api.topScorers(this.leagueId(), this.season());
-        if (scorers[0]?.player) {
-          derived.topScorer = scorers[0].player;
-          derived.topScorerGoals = scorers[0].goals;
-          console.log(`Skyttekung (slutgiltig): ${scorers[0].player} (${scorers[0].goals} mål)`);
-        }
-      } catch (e) {
-        console.error("topscorers-fel:", (e as Error).message);
-      }
-    }
-    await this.ctx.storage.put("knockoutActual", derived);
-    // Slutspelsschemat (för @arnes "nästa match") – lagras vid samma tillfälle.
-    const koFixtures: KoFixture[] = fx
-      .filter((f) => matchRound(f.round))
-      .map((f) => ({ round: f.round, home: f.home.name, away: f.away.name, kickoff: f.date, status: f.status }));
-    await this.ctx.storage.put("koFixtures", koFixtures);
-    await this.ctx.storage.put("knockoutActualAt", Date.now());
-    return derived;
-  }
-
   /** Slutspelsschemat som läsbar PÅGÅR/NÄSTA-text för @arne (null tills det finns). */
   private async koScheduleText(): Promise<string | null> {
     const koFx = (await this.ctx.storage.get<KoFixture[]>("koFixtures")) ?? [];
@@ -84,26 +41,19 @@ export class GoalWatcher extends DurableObject<Env> {
   }
 
   /**
-   * extraPoints (grupp-placering + slutspel + bonus) per spelare. Läser lagrat
-   * slutspelsträd och uppdaterar det från API:t när `forceRefresh` är satt (t.ex. när en
-   * slutspelsmatch rörts), när det saknas, eller när det är äldre än KO_TTL_MS. TTL:n gör
-   * att läsningar (/standings, @arne) självläker efter en deploy/logikändring utan att
-   * anropa API:t på varje läsning. Utan API-klient (injektionstest) används lagrad/tom data.
+   * extraPoints (grupp-placering + slutspel + bonus) per spelare. Slutspelsträdet härleds
+   * direkt ur lagrade matchresultat (rond+vinnare) – inga säsongsbundna API-anrop, så det
+   * fungerar även på API-Footballs Free-plan. Skyttekungen kan inte hämtas på Free och
+   * används därför från ett manuellt inmatat värde (`/set-topscorer`), först när finalen är
+   * spelad (champion satt) så bonusen inte avgörs för tidigt.
    */
-  private async buildExtraPoints(
-    results: Record<string, MatchResult>,
-    api: ApiFootball | null,
-    forceRefresh = false,
-  ): Promise<Map<string, number>> {
-    let stored = await this.ctx.storage.get<StoredKnockoutActual>("knockoutActual");
-    const at = (await this.ctx.storage.get<number>("knockoutActualAt")) ?? 0;
-    const hasSchedule = Boolean(await this.ctx.storage.get<KoFixture[]>("koFixtures"));
-    const stale = Date.now() - at > KO_TTL_MS;
-    if (api && (forceRefresh || !stored || !hasSchedule || stale)) {
-      try {
-        stored = await this.refreshKnockoutActual(api);
-      } catch (e) {
-        console.error("knockout-refresh-fel:", (e as Error).message);
+  private async buildExtraPoints(results: Record<string, MatchResult>): Promise<Map<string, number>> {
+    const bracket = bracketFromResults(results);
+    if (bracket.champion) {
+      const manual = await this.ctx.storage.get<{ player: string; goals: number }>("topScorerManual");
+      if (manual?.player) {
+        bracket.topScorer = manual.player;
+        bracket.topScorerGoals = manual.goals;
       }
     }
     return computeExtraPoints({
@@ -112,7 +62,7 @@ export class GoalWatcher extends DurableObject<Env> {
       fixtures,
       results: scoreMap(results),
       knockoutPreds: knockoutPredictions(),
-      knockoutActual: toKnockoutActual(stored ?? EMPTY_ACTUAL),
+      knockoutActual: toKnockoutActual(bracket),
     });
   }
 
@@ -163,9 +113,48 @@ export class GoalWatcher extends DurableObject<Env> {
     return { changes: n };
   }
 
+  /**
+   * Engångs-backfill av rond+vinnare för redan spelade slutspelsmatcher via fixtureById
+   * (fungerar på Free-planen, till skillnad från den säsongsbundna frågan). Idempotent:
+   * hoppar över matcher som redan har rond. Efter detta härleds trädet ur lagrade resultat.
+   */
+  async backfillKnockout(): Promise<{ backfilled: number; skipped: number; missing: number }> {
+    const api = this.api();
+    const results = await this.loadResults();
+    let backfilled = 0;
+    let skipped = 0;
+    let missing = 0;
+    for (const [key, r] of Object.entries(results)) {
+      if (fixtures[key]) continue; // gruppmatch – behöver ingen rond
+      if (r.round) {
+        skipped++;
+        continue;
+      }
+      try {
+        const fx = await api.fixtureById(r.fixtureId);
+        if (fx) {
+          results[key] = { ...r, round: fx.round, winner: fx.winner ?? null };
+          backfilled++;
+        } else missing++;
+      } catch (e) {
+        console.error("backfill-fel", r.fixtureId, (e as Error).message);
+        missing++;
+      }
+    }
+    await this.ctx.storage.put("results", results);
+    return { backfilled, skipped, missing };
+  }
+
+  /** Manuell skyttekung (Free-planen saknar skytteliga-endpoint). Gäller när finalen spelats. */
+  async setTopScorer(player: string, goals: number): Promise<{ player: string; goals: number }> {
+    const val = { player, goals };
+    await this.ctx.storage.put("topScorerManual", val);
+    return val;
+  }
+
   async getStandings(): Promise<StandingRow[]> {
     const results = await this.loadResults();
-    const extra = await this.buildExtraPoints(results, this.api());
+    const extra = await this.buildExtraPoints(results);
     return computeStandings(players, predictionsByMatch(), scoreMap(results), extra);
   }
 
@@ -187,7 +176,12 @@ export class GoalWatcher extends DurableObject<Env> {
       status: r.status,
       final: r.final,
       live: liveKeys.includes(key),
+      round: r.round ?? null,
+      winner: r.winner ?? null,
     }));
+    // Slutspelsmatcher som saknar rond (ej backfillade) => trädet är ofullständigt.
+    const koMissingRound = Object.entries(results).filter(([key, r]) => !fixtures[key] && !r.round).map(([key]) => key);
+    const topScorerManual = await this.ctx.storage.get<{ player: string; goals: number }>("topScorerManual");
     return {
       now: new Date().toISOString(),
       alarm: alarm ? new Date(alarm).toISOString() : null,
@@ -195,6 +189,8 @@ export class GoalWatcher extends DurableObject<Env> {
       resultsCount: rows.length,
       finalizedCount: rows.filter((r) => r.final).length,
       pendingFinalize: rows.filter((r) => !r.final).map((r) => `${r.key} (${r.match}, ${r.status}, live=${r.live})`),
+      knockoutMissingRound: koMissingRound.length, // >0 => kör /backfill-knockout (trädet ofullständigt)
+      topScorerManual: topScorerManual ?? null,
       results: rows,
       seenEventsCount: seen.length,
       hasRanking: Object.keys(ranking).length > 0,
@@ -261,7 +257,7 @@ export class GoalWatcher extends DurableObject<Env> {
   private async answer(player: string, question: string): Promise<string> {
     const results = await this.loadResults();
     const preds = predictionsByMatch();
-    const extra = await this.buildExtraPoints(results, this.api());
+    const extra = await this.buildExtraPoints(results);
     const standings = computeStandings(players, preds, scoreMap(results), extra);
     const myMatches = await this.myMatchesSummary(player, preds, results);
     const standingsSummary = standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n");
@@ -395,10 +391,8 @@ export class GoalWatcher extends DurableObject<Env> {
 
     const preds = predictionsByMatch();
     const prevRanking = rankingMap(await this.loadRanking());
-    // Slutspelsträdet ändras bara när ett lag VINNER (full tid) – aldrig vid avspark.
-    // Att refresha vid avspark ytar bara en eftersläpande kredit i fel ögonblick.
-    const knockoutTouched = changes.some((c) => !fixtures[c.key] && c.kind === "fulltime");
-    const extra = await this.buildExtraPoints(diff.results, api, knockoutTouched);
+    // Slutspelsträdet härleds ur lagrade resultat (rond+vinnare fångas live), inga API-anrop.
+    const extra = await this.buildExtraPoints(diff.results);
     const standings = computeStandings(players, preds, scoreMap(diff.results), extra, prevRanking);
     const leader = standings[0]?.player;
     const movers = standings

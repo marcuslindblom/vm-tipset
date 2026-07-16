@@ -2,7 +2,7 @@
 // trädet ur API-matcherna) och summerar grupp-placerings- + slutspels- + bonuspoäng per
 // spelare till den `extraPoints`-map som computeStandings adderar ovanpå gruppmatchpoängen.
 
-import type { LiveMatch, Score } from "./types";
+import type { MatchResult, Score } from "./types";
 import { isFinal, isLive } from "./types";
 import type { FixtureInfo } from "./predictions";
 import {
@@ -52,6 +52,24 @@ export interface StoredKnockoutActual {
 
 export const EMPTY_ACTUAL: StoredKnockoutActual = { teamsByRound: {} };
 
+/** Minsta matchform som slutspelsträdet behöver (uppfylls av både LiveMatch och lagrad MatchResult). */
+export interface BracketMatch {
+  round: string;
+  status: string;
+  winner?: string | null;
+  score: Score;
+  home: { name: string };
+  away: { name: string };
+}
+
+/** Härled slutspelsträdet ur lagrade matchresultat (rond+vinnare) – helt utan API-anrop. */
+export function bracketFromResults(results: Record<string, MatchResult>): StoredKnockoutActual {
+  const matches: BracketMatch[] = Object.values(results)
+    .filter((r) => r.round) // bara matcher med rond (slutspel); gruppmatcher utan rond skippas
+    .map((r) => ({ round: r.round!, status: r.status, winner: r.winner, score: r.score, home: { name: r.home }, away: { name: r.away } }));
+  return deriveKnockoutActual(matches);
+}
+
 // Ett lag når nästa rond genom att VINNA sin match i nuvarande rond.
 const NEXT_ROUND: Partial<Record<KnockoutRound, KnockoutRound>> = {
   R32: "R16",
@@ -81,10 +99,10 @@ export function winnerOf(m: { winner?: string | null; score: Score; home: { name
  * nästa match ännu inte lottats tyst missar sin rond. Bronsmatchen exkluderas. Mästare =
  * finalvinnaren.
  */
-export function deriveKnockoutActual(fixtures: LiveMatch[]): StoredKnockoutActual {
+export function deriveKnockoutActual(matches: BracketMatch[]): StoredKnockoutActual {
   const teamsByRound: Partial<Record<KnockoutRound, Set<string>>> = {};
   let champion: string | undefined;
-  for (const fx of fixtures) {
+  for (const fx of matches) {
     const round = matchRound(fx.round);
     if (!round || round === "BRONZE") continue;
     // Bas: lagen som spelar sextondelsfinal har nått R32.
