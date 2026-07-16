@@ -81,6 +81,11 @@ test("deriveKnockoutActual: champion sätts inte förrän finalen är avgjord", 
   assert.equal(a.champion, undefined);
 });
 
+test("deriveKnockoutActual: explicit winner räknas även om lagrad status släpar (2H)", () => {
+  const a = deriveKnockoutActual([ko("Quarter-finals", "France", "Morocco", "2H", "France")]);
+  assert.deepEqual(new Set(a.teamsByRound.SF), new Set(["France"])); // QF-vinnare → SF trots 2H-status
+});
+
 test("bracketFromResults: härleder trädet ur lagrade resultat, skippar gruppmatcher (ingen rond)", () => {
   const mr = (o: Partial<MatchResult> & Pick<MatchResult, "home" | "away">): MatchResult => ({
     fixtureId: 0, score: { home: 0, away: 0 }, status: "FT", final: true, ...o,

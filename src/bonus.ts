@@ -111,8 +111,12 @@ export function deriveKnockoutActual(matches: BracketMatch[]): StoredKnockoutAct
       set.add(canonicalizeEnglish(fx.home.name));
       set.add(canonicalizeEnglish(fx.away.name));
     }
-    // Vinnaren går vidare till nästa rond (final-vinnaren blir mästare).
-    const winner = isFinal(fx.status) ? winnerOf(fx) : null;
+    // Vinnaren går vidare till nästa rond (final-vinnaren blir mästare). Ett explicit
+    // winner-fält betyder att matchen ÄR avgjord (API sätter det bara då) – lita på det
+    // även om lagrad status släpar ("2H"). Utan winner-fält krävs final status för att
+    // få härleda vinnaren ur resultatet (annars skulle en ledning mitt i match räknas).
+    const decided = Boolean(fx.winner) || isFinal(fx.status);
+    const winner = decided ? winnerOf(fx) : null;
     if (winner) {
       const w = canonicalizeEnglish(winner);
       if (round === "FINAL") champion = w;

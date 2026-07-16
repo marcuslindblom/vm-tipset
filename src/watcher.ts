@@ -133,7 +133,8 @@ export class GoalWatcher extends DurableObject<Env> {
       try {
         const fx = await api.fixtureById(r.fixtureId);
         if (fx) {
-          results[key] = { ...r, round: fx.round, winner: fx.winner ?? null };
+          // Ta även status/vinnare från hämtningen (lagrad status kan släpa på "2H").
+          results[key] = { ...r, round: fx.round, winner: fx.winner ?? null, status: fx.status, final: isFinal(fx.status) || r.final };
           backfilled++;
         } else missing++;
       } catch (e) {
