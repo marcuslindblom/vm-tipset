@@ -7,6 +7,7 @@ import {
   toKnockoutActual,
   knockoutCardText,
   knockoutScheduleText,
+  knockoutScheduleFromState,
   roundNameSv,
   bracketFromResults,
   type KoFixture,
@@ -279,6 +280,32 @@ test("knockoutScheduleText: NÄSTA = närmaste kommande, PÅGÅR för live, filt
   assert.match(text, /NÄSTA: Spanien/); // närmaste kommande (18:00), inte placeholder (14:00) eller France (20:00)
   assert.match(text, /åttondelsfinal, avspark 2026-07-02 18:00 UTC/);
   assert.ok(!/Frankrike|Sverige/.test(text)); // den senare R16-matchen ska inte vara NÄSTA
+});
+
+test("knockoutScheduleFromState: en frusen match utan liveKeys visas INTE som pågående; NÄSTA = finalen", () => {
+  const now = Date.parse("2026-07-19T12:00:00Z");
+  const mr = (o: Partial<MatchResult> & Pick<MatchResult, "home" | "away">): MatchResult => ({
+    fixtureId: 0, score: { home: 0, away: 0 }, status: "FT", final: true, ...o,
+  });
+  const results: Record<string, MatchResult> = {
+    sf1: mr({ home: "France", away: "Spain", round: "Semi-finals", winner: "Spain" }),
+    sf2: mr({ home: "England", away: "Argentina", round: "Semi-finals", winner: "Argentina" }),
+    qf: mr({ home: "Spain", away: "Belgium", round: "Quarter-finals", winner: "Spain", status: "2H" }), // frusen, ej i liveKeys
+  };
+  const text = knockoutScheduleFromState(results, [], now + 3_600_000, now)!;
+  assert.ok(!/PÅGÅR/.test(text)); // frusen 2H-match ska inte rapporteras som live
+  assert.match(text, /NÄSTA:.*final/);
+  assert.match(text, /Spanien/);
+  assert.match(text, /Argentina/);
+});
+
+test("knockoutScheduleFromState: match i liveKeys visas som PÅGÅR", () => {
+  const now = Date.parse("2026-07-19T19:30:00Z");
+  const results: Record<string, MatchResult> = {
+    fin: { fixtureId: 0, home: "Spain", away: "Argentina", score: { home: 1, away: 0 }, status: "2H", final: false, round: "Final" },
+  };
+  const text = knockoutScheduleFromState(results, ["fin"], null, now)!;
+  assert.match(text, /PÅGÅR: Spanien–Argentina \(final\)/);
 });
 
 test("knockoutScheduleText: null när inget pågår eller väntar", () => {

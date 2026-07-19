@@ -13,8 +13,7 @@ import {
   bracketFromResults,
   toKnockoutActual,
   knockoutCardText,
-  knockoutScheduleText,
-  type KoFixture,
+  knockoutScheduleFromState,
 } from "./bonus";
 import { players, predictionsByMatch, knockoutPredictions, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
@@ -34,10 +33,18 @@ export class GoalWatcher extends DurableObject<Env> {
     return Number(this.env.WC_LEAGUE_ID);
   }
   // ── Bonuskanal: grupp-placering + slutspel + bonus ────────────────────────
-  /** Slutspelsschemat som läsbar PÅGÅR/NÄSTA-text för @arne (null tills det finns). */
+  /** Slutspelsschemat för @arne, byggt ur FÄRSK state (liveKeys + resultat), inte frusen cache. */
   private async koScheduleText(): Promise<string | null> {
-    const koFx = (await this.ctx.storage.get<KoFixture[]>("koFixtures")) ?? [];
-    return knockoutScheduleText(koFx, Date.now());
+    const results = await this.loadResults();
+    const liveKeys = (await this.ctx.storage.get<string[]>("liveKeys")) ?? [];
+    const now = Date.now();
+    const { nextKickoffMs } = scheduleState(
+      KICKOFFS_MS,
+      now,
+      Number(this.env.MATCH_WINDOW_MINUTES) * 60_000,
+      Number(this.env.KICKOFF_LEAD_SECONDS) * 1000,
+    );
+    return knockoutScheduleFromState(results, liveKeys, nextKickoffMs, now);
   }
 
   /**
@@ -49,6 +56,12 @@ export class GoalWatcher extends DurableObject<Env> {
    */
   private async buildExtraPoints(results: Record<string, MatchResult>): Promise<Map<string, number>> {
     const bracket = bracketFromResults(results);
+    // Säkerhet: om finalen inte hann lagras med vinnare (feed-lag på Free) kan mästaren
+    // sättas manuellt via /set-champion. Null som standard ⇒ ingen effekt på auto-vägen.
+    if (!bracket.champion) {
+      const cm = await this.ctx.storage.get<string>("championManual");
+      if (cm) bracket.champion = cm;
+    }
     if (bracket.champion) {
       const manual = await this.ctx.storage.get<{ player: string; goals: number }>("topScorerManual");
       if (manual?.player) {
@@ -151,6 +164,12 @@ export class GoalWatcher extends DurableObject<Env> {
     const val = { player, goals };
     await this.ctx.storage.put("topScorerManual", val);
     return val;
+  }
+
+  /** Manuell mästare – säkerhet om finalen inte hann lagras med vinnare. Används bara som fallback. */
+  async setChampion(team: string): Promise<{ champion: string }> {
+    await this.ctx.storage.put("championManual", team);
+    return { champion: team };
   }
 
   async getStandings(): Promise<StandingRow[]> {

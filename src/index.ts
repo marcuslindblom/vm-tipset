@@ -117,6 +117,14 @@ export default {
         return json(await w.setTopScorer(player, goals));
       }
 
+      case "/set-champion": {
+        // Manuell mästare (säkerhet om finalen ej lagras med vinnare): ?team=Spain
+        if (req.method !== "POST") return json({ error: "POST krävs" }, 405);
+        const team = url.searchParams.get("team");
+        if (!team) return json({ error: "team krävs" }, 400);
+        return json(await w.setChampion(team));
+      }
+
       case "/test/commentary": {
         // Genererar ETT exempel-referat och returnerar det (postar inget till Slack).
         const started = Date.now();

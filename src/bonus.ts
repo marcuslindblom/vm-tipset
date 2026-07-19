@@ -200,6 +200,34 @@ export interface KoFixture {
 }
 
 /**
+ * Slutspelsschema ur FÄRSK DO-state (inte en lagrad, potentiellt frusen KoFixture-lista):
+ * PÅGÅR = matcher som är live just nu enligt `liveKeys` (pollern håller den aktuell), och
+ * NÄSTA = finalen om den återstår (2 kända finalister + framtida avspark). På Free-planen
+ * kan schemat inte hämtas via säsongsfrågan, så detta undviker att Arne rapporterar en gammal
+ * match som "pågår" bara för att dess lagrade status frusit på "2H".
+ */
+export function knockoutScheduleFromState(
+  results: Record<string, MatchResult>,
+  liveKeys: string[],
+  nextKickoffMs: number | null,
+  nowMs: number,
+): string | null {
+  const lines: string[] = [];
+  for (const key of liveKeys) {
+    const r = results[key];
+    const label = r?.round ? roundNameSv(r.round) : "";
+    if (label) lines.push(`PÅGÅR: ${toSwedish(r.home)}–${toSwedish(r.away)} (${label})`);
+  }
+  const finalTeams = bracketFromResults(results).teamsByRound.FINAL ?? [];
+  const finalPlayed = Object.values(results).some((r) => matchRound(r.round ?? "") === "FINAL");
+  if (!finalPlayed && finalTeams.length === 2 && nextKickoffMs && nextKickoffMs > nowMs) {
+    const when = new Date(nextKickoffMs).toISOString().slice(0, 16).replace("T", " ");
+    lines.push(`NÄSTA: ${finalTeams.map(toSwedish).join("–")} (final, avspark ${when} UTC)`);
+  }
+  return lines.length ? lines.join("\n") : null;
+}
+
+/**
  * Bygg schematexten för slutspelet (ren funktion): PÅGÅR-rader för live-matcher och en
  * NÄSTA-rad för närmaste kommande match. Speglar gruppspelets radform (utan resultattips,
  * som inte finns i slutspelet). Placeholder-lag (tomma namn) filtreras bort. null = inget.
