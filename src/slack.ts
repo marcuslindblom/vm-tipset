@@ -201,6 +201,40 @@ export function buildLeadChangeMessage(
   return { text: title, blocks };
 }
 
+/** Avslutnings-toast: hela VM-tipset avgjort – vinnare, världsmästare, slutställning + Arnes skål. */
+export function buildFinalSummary(
+  standings: StandingRow[],
+  opts: { worldChampion: string; finalResult: string; toast: string | null; highlights?: string[] },
+): SlackMessage {
+  const winner = standings[0];
+  const title = `VM-tipset 2026 avgjort — ${winner?.player ?? "?"} vinner!`;
+  const blocks: unknown[] = [
+    { type: "header", text: { type: "plain_text", text: "🏆 VM-tipset 2026 — avgjort!", emoji: true } },
+    {
+      type: "context",
+      elements: [{ type: "mrkdwn", text: `VM-final: ${opts.finalResult}  ·  Världsmästare: *${opts.worldChampion}* 🏆` }],
+    },
+  ];
+  if (winner) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: `🥇 *${winner.player} vinner hela VM-tipset med ${winner.points} poäng!*` },
+    });
+  }
+  if (opts.toast) blocks.push({ type: "section", text: { type: "mrkdwn", text: `> _${opts.toast}_\n> — Arne` } });
+  blocks.push({
+    type: "section",
+    text: { type: "mrkdwn", text: "📊 *Slutställning*\n```\n" + standingsText(standings) + "\n```" },
+  });
+  if (opts.highlights?.length) {
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: "✨ *Ur tipsets historia:*\n" + opts.highlights.map((h) => `• ${h}`).join("\n") },
+    });
+  }
+  return { text: title, blocks };
+}
+
 /** Fristående topplista (t.ex. /standings-route eller manuell post). */
 export function buildStandingsMessage(standings: StandingRow[], heading = "🏆 Ställning"): SlackMessage {
   return {

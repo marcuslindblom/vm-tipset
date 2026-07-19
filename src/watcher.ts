@@ -17,9 +17,9 @@ import {
 } from "./bonus";
 import { players, predictionsByMatch, knockoutPredictions, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
-import { toSwedish } from "./teams";
-import { buildGoalMessage, buildLeadChangeMessage, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
-import { generateCommentary, answerAsArne, leadChangeCommentary, type CommentaryContext, type TipperView } from "./commentary";
+import { toSwedish, canonicalizeEnglish } from "./teams";
+import { buildGoalMessage, buildLeadChangeMessage, buildFinalSummary, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
+import { generateCommentary, answerAsArne, leadChangeCommentary, finalToastCommentary, type CommentaryContext, type TipperView } from "./commentary";
 import { postMessage } from "./slackapi";
 
 const KICKOFFS_MS = toKickoffMs(kickoffs);
@@ -170,6 +170,55 @@ export class GoalWatcher extends DurableObject<Env> {
   async setChampion(team: string): Promise<{ champion: string }> {
     await this.ctx.storage.put("championManual", team);
     return { champion: team };
+  }
+
+  /**
+   * Avslutnings-toast till Slack när VM-tipset är avgjort: vinnare, världsmästare, slutställning,
+   * några säsongshöjdpunkter + Arnes stora skål. `champion` anges kanoniskt engelskt ("Spain").
+   */
+  async postFinalSummary(
+    champion: string,
+    finalResult: string,
+    dryRun = false,
+  ): Promise<{ posted: boolean; winner: string; points: number; preview?: unknown }> {
+    const results = await this.loadResults();
+    const preds = predictionsByMatch();
+    const extra = await this.buildExtraPoints(results);
+    const standings = computeStandings(players, preds, scoreMap(results), extra);
+    const winner = standings[0];
+    const runners = standings.filter((r) => r.rank === 2).map((r) => r.player);
+    const runnersUp = runners.length
+      ? runners.length > 1
+        ? `${runners.slice(0, -1).join(", ")} och ${runners.slice(-1)}`
+        : runners[0]
+      : undefined;
+
+    // Säsongshöjdpunkter.
+    const topGroup = [...standings].sort((a, b) => b.groupPoints - a.groupPoints)[0];
+    const topExact = [...standings].sort((a, b) => b.exact - a.exact)[0];
+    const champCanon = canonicalizeEnglish(champion);
+    const ko = knockoutPredictions();
+    const champPickers = players.filter((p) => canonicalizeEnglish(ko.get(p)?.champion ?? "") === champCanon);
+    const highlights = [
+      `Bäst i gruppspelet: ${topGroup.player} (${topGroup.groupPoints} p)`,
+      `Flest exakta gruppresultat: ${topExact.player} (${topExact.exact} st)`,
+      champPickers.length ? `Prickade världsmästaren: ${champPickers.join(", ")}` : "",
+    ].filter(Boolean);
+
+    const worldChampion = toSwedish(champion);
+    const standingsSummary = standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n");
+    const toast = await finalToastCommentary(this.env, {
+      winner: winner.player,
+      winnerPoints: winner.points,
+      runnersUp,
+      worldChampion,
+      finalResult,
+      standings: standingsSummary,
+    });
+    const msg = buildFinalSummary(standings, { worldChampion, finalResult, toast, highlights });
+    if (dryRun) return { posted: false, winner: winner.player, points: winner.points, preview: msg };
+    const { posted } = await postSlack(this.env, msg);
+    return { posted, winner: winner.player, points: winner.points };
   }
 
   async getStandings(): Promise<StandingRow[]> {

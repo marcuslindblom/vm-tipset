@@ -125,6 +125,15 @@ export default {
         return json(await w.setChampion(team));
       }
 
+      case "/final-summary": {
+        // Postar avslutnings-toasten till Slack: ?champion=Spain&final=Spanien 1-0 Argentina (e.förl.)
+        if (req.method !== "POST") return json({ error: "POST krävs" }, 405);
+        const champion = url.searchParams.get("champion") ?? "Spain";
+        const final = url.searchParams.get("final") ?? "";
+        const dry = url.searchParams.get("dry") === "1"; // förhandsvisa utan att posta
+        return json(await w.postFinalSummary(champion, final, dry));
+      }
+
       case "/test/commentary": {
         // Genererar ETT exempel-referat och returnerar det (postar inget till Slack).
         const started = Date.now();

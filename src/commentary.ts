@@ -266,6 +266,37 @@ ANVÄND ENDAST namnen och datan nedan – hitta ALDRIG på spelare, siffror elle
   return runChain(env, system, prompt);
 }
 
+export interface FinalToastInput {
+  winner: string; // tipsets vinnare
+  winnerPoints: number;
+  runnersUp?: string; // t.ex. "Fredrik och Marcus" (delad 2:a)
+  worldChampion: string; // världsmästaren, svenskt namn ("Spanien")
+  finalResult: string; // "Spanien 1–0 Argentina (efter förlängning)"
+  standings: string; // slutställning (text)
+}
+
+/** Arnes stora avskedsskål när hela VM-tipset är avgjort. Hittar aldrig på siffror/lag. */
+export async function finalToastCommentary(env: Env, a: FinalToastInput): Promise<string | null> {
+  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
+  const company = env.COMPANY_NAME || "Strife";
+  const system = `Du är "Arne Hegerfors" och har speakat hela VM-tipset på ${company}. Nu är VM SLUT och tipset AVGJORT – det här är din STORA avslutning, en varm avskedsskål till hela sällskapet.
+Skriv en festlig, hjärtlig TOAST på svenska (3–5 meningar, ~60–100 ord): hylla vinnaren med värme, nämn världsmästaren och finalen, och höj till sist en skål för sällskapet. Nostalgiskt, rörande och charmigt – din allra finaste Arne-röst.
+
+${ARNE_VOICE}
+
+ANVÄND ENDAST namnen och datan nedan – hitta ALDRIG på spelare, siffror eller placeringar. Ingen emoji, inga hashtags, inga citattecken runt svaret.`;
+  const prompt = [
+    `Tipsets vinnare: ${a.winner} med ${a.winnerPoints} poäng`,
+    a.runnersUp ? `Tvåa: ${a.runnersUp}` : "",
+    `Världsmästare: ${a.worldChampion}`,
+    `VM-final: ${a.finalResult}`,
+    `Slutställning:\n${a.standings}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return runChain(env, system, prompt);
+}
+
 /** Modellkedjan: GEMINI_MODELS (kommaseparerad) eller default-kedja. */
 export function modelChain(env: Env): string[] {
   const configured = env.GEMINI_MODELS?.split(",").map((s) => s.trim()).filter(Boolean);
