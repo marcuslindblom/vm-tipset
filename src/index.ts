@@ -125,6 +125,14 @@ export default {
         return json(await w.setChampion(team));
       }
 
+      case "/set-total-goals": {
+        // Utslagsfrågan: verkligt totalt målantal (ordinarie + förlängning, ej straffar): ?goals=N
+        if (req.method !== "POST") return json({ error: "POST krävs" }, 405);
+        const goals = Number(url.searchParams.get("goals"));
+        if (Number.isNaN(goals)) return json({ error: "goals krävs" }, 400);
+        return json(await w.setTotalGoals(goals));
+      }
+
       case "/final-summary": {
         // Postar avslutnings-toasten till Slack: ?champion=Spain&final=Spanien 1-0 Argentina (e.förl.)
         if (req.method !== "POST") return json({ error: "POST krävs" }, 405);

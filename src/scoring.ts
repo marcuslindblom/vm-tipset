@@ -60,10 +60,20 @@ export function computeGroupPoints(
 }
 
 /**
+ * Utslagsfrågan (PDF): vid lika poäng vinner den som tippat närmast turneringens
+ * verkliga totala målantal (ordinarie tid + förlängning, EJ straffläggning).
+ * `actualTotalGoals` = det verkliga antalet; `predictedTotals` = spelarnas gissningar.
+ */
+export interface TieBreak {
+  actualTotalGoals: number;
+  predictedTotals: Map<string, number>;
+}
+
+/**
  * Hela ställningen, sorterad och rankad.
  * `extraPoints` = grupp-placering + slutspel + bonus (0 tills de avgörs).
- * Lika poäng sorteras på namn live; den officiella skiljefrågan (utslagsfrågan,
- * totalt antal mål) tillämpas på slutställningen separat.
+ * `tieBreak` (om satt) bryter lika poäng på utslagsfrågan enligt PDF:en; annars – och
+ * live innan facit finns – sorteras lika poäng på namn och delar placering.
  */
 export function computeStandings(
   players: string[],
@@ -71,6 +81,7 @@ export function computeStandings(
   results: Map<string, Score>,
   extraPoints: Map<string, number> = new Map(),
   prevRanking: Map<string, number> | null = null,
+  tieBreak: TieBreak | null = null,
 ): StandingRow[] {
   const group = computeGroupPoints(predictionsByMatch, results);
 
@@ -89,11 +100,17 @@ export function computeStandings(
     };
   });
 
-  rows.sort((a, b) => b.points - a.points || a.player.localeCompare(b.player, "sv"));
+  // Avstånd till verkligt målantal (0 när utslagsfrågan inte tillämpas ⇒ oförändrad ordning).
+  const dist = (player: string): number =>
+    tieBreak ? Math.abs((tieBreak.predictedTotals.get(player) ?? Number.POSITIVE_INFINITY) - tieBreak.actualTotalGoals) : 0;
+
+  rows.sort((a, b) => b.points - a.points || dist(a.player) - dist(b.player) || a.player.localeCompare(b.player, "sv"));
 
   for (let i = 0; i < rows.length; i++) {
     const prev = rows[i - 1];
-    rows[i].rank = i > 0 && rows[i].points === prev.points ? prev.rank : i + 1;
+    // Delad placering bara när varken poäng eller utslagsfrågan skiljer dem åt.
+    const tied = i > 0 && rows[i].points === prev.points && dist(rows[i].player) === dist(prev.player);
+    rows[i].rank = tied ? prev.rank : i + 1;
   }
   for (const r of rows) r.delta = r.prevRank == null ? 0 : r.prevRank - r.rank;
 

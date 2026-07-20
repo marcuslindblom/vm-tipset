@@ -7,7 +7,7 @@ import type { Env, LiveMatch, MatchResult, Score } from "./types";
 import { isFinal } from "./types";
 import { ApiFootball } from "./apifootball";
 import { applyLiveSnapshot, finalizeGone, diffEvents, type Change } from "./engine";
-import { computeStandings, gradeMatch, isExact, type StandingRow } from "./scoring";
+import { computeStandings, gradeMatch, isExact, type StandingRow, type TieBreak } from "./scoring";
 import {
   computeExtraPoints,
   bracketFromResults,
@@ -172,6 +172,21 @@ export class GoalWatcher extends DurableObject<Env> {
     return { champion: team };
   }
 
+  /** Verkligt totalt målantal (utslagsfrågan, ordinarie + förlängning, ej straffar). Bryter lika poäng. */
+  async setTotalGoals(goals: number): Promise<{ totalGoals: number }> {
+    await this.ctx.storage.put("totalGoalsActual", goals);
+    return { totalGoals: goals };
+  }
+
+  /** Utslagsfrågan för computeStandings: verkligt målantal + spelarnas gissningar (null tills satt). */
+  private async tieBreak(): Promise<TieBreak | null> {
+    const actual = await this.ctx.storage.get<number>("totalGoalsActual");
+    if (actual == null) return null;
+    const predicted = new Map<string, number>();
+    for (const [p, k] of knockoutPredictions()) predicted.set(p, k.totalGoals);
+    return { actualTotalGoals: actual, predictedTotals: predicted };
+  }
+
   /**
    * Avslutnings-toast till Slack när VM-tipset är avgjort: vinnare, världsmästare, slutställning,
    * några säsongshöjdpunkter + Arnes stora skål. `champion` anges kanoniskt engelskt ("Spain").
@@ -184,7 +199,7 @@ export class GoalWatcher extends DurableObject<Env> {
     const results = await this.loadResults();
     const preds = predictionsByMatch();
     const extra = await this.buildExtraPoints(results);
-    const standings = computeStandings(players, preds, scoreMap(results), extra);
+    const standings = computeStandings(players, preds, scoreMap(results), extra, null, await this.tieBreak());
     const winner = standings[0];
     const runners = standings.filter((r) => r.rank === 2).map((r) => r.player);
     const runnersUp = runners.length
@@ -227,7 +242,7 @@ export class GoalWatcher extends DurableObject<Env> {
   async getStandings(): Promise<StandingRow[]> {
     const results = await this.loadResults();
     const extra = await this.buildExtraPoints(results);
-    return computeStandings(players, predictionsByMatch(), scoreMap(results), extra);
+    return computeStandings(players, predictionsByMatch(), scoreMap(results), extra, null, await this.tieBreak());
   }
 
   async reset(): Promise<{ reset: true }> {
@@ -330,7 +345,7 @@ export class GoalWatcher extends DurableObject<Env> {
     const results = await this.loadResults();
     const preds = predictionsByMatch();
     const extra = await this.buildExtraPoints(results);
-    const standings = computeStandings(players, preds, scoreMap(results), extra);
+    const standings = computeStandings(players, preds, scoreMap(results), extra, null, await this.tieBreak());
     const myMatches = await this.myMatchesSummary(player, preds, results);
     const standingsSummary = standings.map((r) => `${r.rank}. ${r.player} — ${r.points} p`).join("\n");
 
@@ -465,7 +480,7 @@ export class GoalWatcher extends DurableObject<Env> {
     const prevRanking = rankingMap(await this.loadRanking());
     // Slutspelsträdet härleds ur lagrade resultat (rond+vinnare fångas live), inga API-anrop.
     const extra = await this.buildExtraPoints(diff.results);
-    const standings = computeStandings(players, preds, scoreMap(diff.results), extra, prevRanking);
+    const standings = computeStandings(players, preds, scoreMap(diff.results), extra, prevRanking, await this.tieBreak());
     const leader = standings[0]?.player;
     const movers = standings
       .filter((r) => r.delta !== 0)

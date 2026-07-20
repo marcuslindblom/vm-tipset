@@ -71,6 +71,26 @@ test("computeStandings: extraPoints (placering/slutspel/bonus) adderas", () => {
   assert.equal(byPlayer.get("B")!.rank, 1);
 });
 
+test("computeStandings: utslagsfrågan bryter lika poäng (närmast verkligt målantal)", () => {
+  const preds = new Map<string, Map<string, Prediction>>([
+    ["m1", new Map([["A", { home: 1, away: 0 }], ["B", { home: 1, away: 0 }]])],
+  ]);
+  const results = new Map([["m1", { home: 1, away: 0 }]]); // båda exakt = 4 p ⇒ lika
+  const tie = { actualTotalGoals: 200, predictedTotals: new Map([["A", 205], ["B", 198]]) };
+  // B (avstånd 2) närmare än A (avstånd 5) ⇒ B före A, distinkta placeringar
+  const rows = computeStandings(["A", "B"], preds, results, new Map(), null, tie);
+  assert.deepEqual(rows.map((r) => [r.player, r.rank]), [["B", 1], ["A", 2]]);
+});
+
+test("computeStandings: utan utslagsfråga delas placering fortfarande (oförändrat)", () => {
+  const preds = new Map<string, Map<string, Prediction>>([
+    ["m1", new Map([["A", { home: 1, away: 0 }], ["B", { home: 1, away: 0 }]])],
+  ]);
+  const results = new Map([["m1", { home: 1, away: 0 }]]);
+  const rows = computeStandings(["A", "B"], preds, results);
+  assert.deepEqual(rows.map((r) => r.rank), [1, 1]); // delad 1:a
+});
+
 // ── Grupp-placering: 2 p rätt etta, 1 p rätt tvåa ─────────────────────────────
 test("predictedGroupTable: härleder tabell ur tippade resultat", () => {
   const teams = ["Sverige", "Brasilien", "Serbien", "Schweiz"];
