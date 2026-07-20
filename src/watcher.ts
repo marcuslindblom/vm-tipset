@@ -17,7 +17,7 @@ import {
 } from "./bonus";
 import { players, predictionsByMatch, knockoutPredictions, keyOfLive, displayNames, fixtures, kickoffs } from "./predictions";
 import { scheduleState, toKickoffMs } from "./schedule";
-import { toSwedish, canonicalizeEnglish } from "./teams";
+import { toSwedish, canonicalizeEnglish, samePlayer } from "./teams";
 import { buildGoalMessage, buildLeadChangeMessage, buildFinalSummary, postSlack, statsSummary, type GoalView, type MatchPointRow } from "./slack";
 import { generateCommentary, answerAsArne, leadChangeCommentary, finalToastCommentary, type CommentaryContext, type TipperView } from "./commentary";
 import { postMessage } from "./slackapi";
@@ -199,10 +199,13 @@ export class GoalWatcher extends DurableObject<Env> {
     const champCanon = canonicalizeEnglish(champion);
     const ko = knockoutPredictions();
     const champPickers = players.filter((p) => canonicalizeEnglish(ko.get(p)?.champion ?? "") === champCanon);
+    const ts = await this.ctx.storage.get<{ player: string; goals: number }>("topScorerManual");
+    const scorerPickers = ts ? players.filter((p) => samePlayer(ko.get(p)?.topScorer ?? "", ts.player)) : [];
     const highlights = [
       `Bäst i gruppspelet: ${topGroup.player} (${topGroup.groupPoints} p)`,
       `Flest exakta gruppresultat: ${topExact.player} (${topExact.exact} st)`,
       champPickers.length ? `Prickade världsmästaren: ${champPickers.join(", ")}` : "",
+      ts ? `Skyttekung: ${ts.player} (${ts.goals} mål)${scorerPickers.length ? ` — rätt tippat av ${scorerPickers.join(", ")}` : " — ingen prickade rätt"}` : "",
     ].filter(Boolean);
 
     const worldChampion = toSwedish(champion);
