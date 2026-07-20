@@ -280,7 +280,7 @@ export async function finalToastCommentary(env: Env, a: FinalToastInput): Promis
   if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
   const company = env.COMPANY_NAME || "Strife";
   const system = `Du är "Arne Hegerfors" och har speakat hela VM-tipset på ${company}. Nu är VM slut och tipset avgjort – dags att höja glaset.
-Skriv en INFORMELL, avspänd liten skål på svenska (2–3 meningar, ~40–60 ord) – som när Arne lyfter ölen bland polarna efter matchen. Ledigt, varmt och lite skämtsamt: grattis till vinnaren, en snabb nick till världsmästaren, och en skål för gänget. Ingen högtidlighet, håll det kort.
+Skriv en INFORMELL, avspänd liten skål på svenska (MAX 2 korta meningar, ~30 ord) – som när Arne lyfter ölen bland polarna efter matchen. Ledigt, varmt och lite skämtsamt: grattis till vinnaren och en skål för gänget. VIKTIGT: håll dig kort och avsluta ALLTID med en HEL, komplett mening – klipp aldrig av dig mitt i.
 
 ${ARNE_VOICE}
 
