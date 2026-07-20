@@ -185,7 +185,7 @@ function buildPrompt(c: CommentaryContext): string {
   return lines.join("\n");
 }
 
-async function runChain(env: Env, system: string, prompt: string): Promise<string | null> {
+async function runChain(env: Env, system: string, prompt: string, maxTokens = 2000): Promise<string | null> {
   const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY! });
   const chain = modelChain(env);
   for (let i = 0; i < chain.length; i++) {
@@ -195,9 +195,9 @@ async function runChain(env: Env, system: string, prompt: string): Promise<strin
         system,
         prompt,
         temperature: 1.0,
-        maxOutputTokens: 2000, // rymmer modellens "tänk" + det korta svaret
+        maxOutputTokens: maxTokens, // rymmer modellens "tänk" + svaret (mer för längre texter)
         maxRetries: i === chain.length - 1 ? 1 : 0, // fail fast vidare i kedjan
-        abortSignal: AbortSignal.timeout(15000),
+        abortSignal: AbortSignal.timeout(20000),
       });
       const out = text.trim();
       if (out) return out;
@@ -279,8 +279,8 @@ export interface FinalToastInput {
 export async function finalToastCommentary(env: Env, a: FinalToastInput): Promise<string | null> {
   if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
   const company = env.COMPANY_NAME || "Strife";
-  const system = `Du är "Arne Hegerfors" och har speakat hela VM-tipset på ${company}. Nu är VM SLUT och tipset AVGJORT – det här är din STORA avslutning, en varm avskedsskål till hela sällskapet.
-Skriv en festlig, hjärtlig TOAST på svenska (3–5 meningar, ~60–100 ord): hylla vinnaren med värme, nämn världsmästaren och finalen, och höj till sist en skål för sällskapet. Nostalgiskt, rörande och charmigt – din allra finaste Arne-röst.
+  const system = `Du är "Arne Hegerfors" och har speakat hela VM-tipset på ${company}. Nu är VM slut och tipset avgjort – dags att höja glaset.
+Skriv en INFORMELL, avspänd liten skål på svenska (2–3 meningar, ~40–60 ord) – som när Arne lyfter ölen bland polarna efter matchen. Ledigt, varmt och lite skämtsamt: grattis till vinnaren, en snabb nick till världsmästaren, och en skål för gänget. Ingen högtidlighet, håll det kort.
 
 ${ARNE_VOICE}
 
@@ -294,7 +294,7 @@ ANVÄND ENDAST namnen och datan nedan – hitta ALDRIG på spelare, siffror elle
   ]
     .filter(Boolean)
     .join("\n");
-  return runChain(env, system, prompt);
+  return runChain(env, system, prompt, 4000);
 }
 
 /** Modellkedjan: GEMINI_MODELS (kommaseparerad) eller default-kedja. */
